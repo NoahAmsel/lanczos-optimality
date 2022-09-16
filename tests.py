@@ -37,3 +37,11 @@ if __name__ == "__main__":
         b = np.random.rand(dim)
         ref = naive_fa(np.exp, A, b)
         assert np.allclose(lanczos_fa(np.exp, A, b, k=dim//2), ref)
+
+if __name__ == "__main__":
+    dim = 10
+    A = generate_symmetric(list(range(dim//2)) + [0]*(dim//2))
+    b = np.random.rand(dim)
+    for ks in [range(1, 10), [10, 1, 4]]:
+        for k, truncated_estimate in zip(ks, lanczos_fa_multi_k(np.exp, A, b, ks=ks)):
+            assert np.allclose(truncated_estimate, lanczos_fa(np.exp, A, b, k=k))
