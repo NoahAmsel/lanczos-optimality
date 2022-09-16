@@ -1,4 +1,17 @@
-from lanczos import *
+import numpy as np
+import numpy.linalg as lin
+
+from function_approx import *
+from lanczos import lanczos
+
+def generate_orthonormal(n, seed=None):
+    M = np.random.default_rng(seed).normal(size=(n, n))
+    Q, _ = lin.qr(M)
+    return Q
+
+def generate_symmetric(eigenvalues, seed=None):
+    Q = generate_orthonormal(len(eigenvalues), seed=seed)
+    return Q @ np.diag(eigenvalues) @ Q.T
 
 if __name__ == "__main__":
     a_diag = np.random.randn(3)

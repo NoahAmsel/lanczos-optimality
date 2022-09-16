@@ -1,25 +1,7 @@
 import numpy as np
 import numpy.linalg as lin
-import scipy.linalg
 
-def generate_orthonormal(n, seed=None):
-    M = np.random.default_rng(seed).normal(size=(n, n))
-    Q, _ = np.linalg.qr(M)
-    return Q
-
-def generate_symmetric(eigenvalues, seed=None):
-    Q = generate_orthonormal(len(eigenvalues), seed=seed)
-    return Q @ np.diag(eigenvalues) @ Q.T
-
-def naive_fa(f, A, x):
-    l, V = lin.eigh(A)
-    # A = V @ np.diag(l) @ V.T
-    return V @ (f(l) * (V.T @ x))
-
-def diagonal_fa(f, a_diag, x):
-    return f(a_diag) * x
-
-def lanczos_fa(f, A, x, k=None):
+def lanczos(A, q_1, k=None):
     """See Stability of Lanczos Method page 5
     """
     assert np.allclose(A, A.T)  # this probably hurts performance
@@ -28,7 +10,7 @@ def lanczos_fa(f, A, x, k=None):
     if k is None:
         k = n
 
-    Q = [x / lin.norm(x)]
+    Q = [q_1 / lin.norm(q_1)]
     alpha = []
     beta = []  # this is really beta_2, beta_3, ...
     for i in range(k):
@@ -58,11 +40,4 @@ def lanczos_fa(f, A, x, k=None):
     alpha = np.array(alpha)
     beta = np.array(beta)
 
-    # We don't need to construct T, but if we did it would be this:
-    # T = scipy.sparse.diags([beta, alpha, beta], [-1, 0, 1]) # .toarray()
-
-    T_lambda, T_V = scipy.linalg.eigh_tridiagonal(alpha, beta)    
-    return lin.norm(x) * (Q @ (T_V @ (f(T_lambda) * T_V[0, :])))
-
-if __name__ == "__main__":
-    pass
+    return Q, alpha, beta
