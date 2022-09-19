@@ -16,7 +16,7 @@ def lanczos_fa(f, A, x, k=None):
     """See Stability of Lanczos Method page 5
     """
 
-    Q, alpha, beta = lanczos(A, x, k)
+    Q, (alpha, beta) = lanczos(A, x, k)
 
     # We don't need to construct T, but if we did it would be this:
     # T = scipy.sparse.diags([beta, alpha, beta], [-1, 0, 1]) # .toarray()
@@ -26,15 +26,11 @@ def lanczos_fa(f, A, x, k=None):
     return lin.norm(x) * (Q @ (T_V @ (f(T_lambda) * T_V[0, :])))
 
 def lanczos_fa_multi_k(f, A, x, ks=None):
-    n = len(x)
-    assert A.shape[0] == A.shape[1] == n
-
     if ks is None:
-        ks = range(1, n+1)
-
+        ks = range(1, len(x)+1)
     ks = list(ks)
 
-    Q, alpha, beta = lanczos(A, x, max(ks))
+    Q, (alpha, beta) = lanczos(A, x, max(ks))
 
     for k in ks:
         T_lambda, T_V = scipy.linalg.eigh_tridiagonal(alpha[:k], beta[:k-1])
