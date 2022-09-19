@@ -2,7 +2,7 @@ import numpy as np
 import numpy.linalg as lin
 import scipy.linalg
 
-from lanczos import lanczos
+from .lanczos import lanczos
 
 def naive_fa(f, A, x):
     l, V = lin.eigh(A)
