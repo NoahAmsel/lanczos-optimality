@@ -3,18 +3,10 @@ import numpy.linalg as lin
 
 from function_approx import *
 from lanczos import lanczos
-
-def generate_orthonormal(n, seed=None):
-    M = np.random.default_rng(seed).normal(size=(n, n))
-    Q, _ = lin.qr(M)
-    return Q
-
-def generate_symmetric(eigenvalues, seed=None):
-    Q = generate_orthonormal(len(eigenvalues), seed=seed)
-    return Q @ np.diag(eigenvalues) @ Q.T
+from utils import *
 
 if __name__ == "__main__":
-    a_diag = np.random.randn(3)
+    a_diag = np.random.rand(3)
     A = np.diag(a_diag)    
     b = np.random.rand(3)
 
@@ -45,3 +37,29 @@ if __name__ == "__main__":
     for ks in [range(1, 10), [10, 1, 4]]:
         for k, truncated_estimate in zip(ks, lanczos_fa_multi_k(np.exp, A, b, ks=ks)):
             assert np.allclose(truncated_estimate, lanczos_fa(np.exp, A, b, k=k))
+
+if __name__ == "__main__":
+    A = np.array([[1, 1, 1], [1, 1, 0], [1, 0, 0]])
+    x = np.ones(3)
+    ref = np.column_stack([
+        np.ones(3)/np.sqrt(3), 
+        np.array([1, 0, -1])/np.sqrt(2),
+        np.array([-np.sqrt(2), 2*np.sqrt(2), -np.sqrt(2)])/np.sqrt(12)
+    ])
+    for k in range(1, 4):
+        assert np.allclose(krylov_subspace(A, x, k), ref[:, :k])
+
+if __name__ == "__main__":
+    dim = 100
+    A = np.random.randn(dim, dim)
+    x = np.random.randn(dim)
+    Q = krylov_subspace(A, x)
+    assert np.allclose(Q.T @ Q, np.eye(dim))
+
+# if __name__ == "__main__":
+#     dim = 100
+#     a_diag = np.array(list(range(1, dim+1)))
+#     A = np.diag(a_diag)
+#     x = np.ones(dim)
+#     Q = krylov_subspace(A, x)
+#     assert np.allclose(Q.T @ Q, np.eye(dim), rtol=1e-4, atol=1e-4)
