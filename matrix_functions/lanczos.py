@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.linalg as lin
 
+
 def lanczos(A, q_1, k=None, reorthogonalize=False):
     """See Stability of Lanczos Method page 5
     """
