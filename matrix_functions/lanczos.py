@@ -4,7 +4,7 @@ import numpy.linalg as lin
 def lanczos(A, q_1, k=None):
     """See Stability of Lanczos Method page 5
     """
-    assert np.allclose(A, A.T)  # this probably hurts performance
+    # assert np.allclose(A, A.T)  # can't do this with sparse matrix
     n = len(q_1)
     assert A.shape[0] == A.shape[1] == n
 

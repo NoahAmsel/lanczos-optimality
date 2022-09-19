@@ -1,17 +1,19 @@
 import numpy as np
 import numpy.linalg as lin
+from scipy import sparse
 
 from matrix_functions import *
 
 def test_fa_diagonal():
     a_diag = np.random.rand(3)
-    A = np.diag(a_diag)    
+    A = np.diag(a_diag)
+    A_sparse = sparse.diags((a_diag), (0))    
     b = np.random.rand(3)
 
     ref = b / a_diag
     assert np.allclose(naive_fa(np.reciprocal, A, b), ref)
     assert np.allclose(diagonal_fa(np.reciprocal, a_diag, b), ref)
-    assert np.allclose(lanczos_fa(np.reciprocal, A, b), ref)
+    assert np.allclose(lanczos_fa(np.reciprocal, A_sparse, b), ref)
 
 def test_fa_linear_system():
     A = np.random.randn(3, 3)

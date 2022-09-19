@@ -14,7 +14,7 @@ def krylov_subspace(A, x, size=None):
     """Do Gram-Schmidt orthogonalization along the way to avoid ill-conditioning
     """
     if size is None:
-        size = len(A)
+        size = len(x)
 
     basis = np.empty((len(x), size))
     basis[:, 0] = x / lin.norm(x)
