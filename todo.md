@@ -8,8 +8,8 @@ ALSO do interpolant of $k+1$ Chebyshev points
 
 Ask Anne to order textbooks ... Kari Schwartz
 
-just use the Q from Lanczos, don't make a separate function
+clean up the lanczos function
 
-TODO: add reorthogonalization to gram schmidt
-
-alternatively, can do "regular" Gram Schmdit twice in the inner loop of lanczos. instead of modified gram schmdit, just copy the "unmodified" gram schmdit line twice lol
+either
+- can do "regular" Gram Schmdit twice in the inner loop of lanczos. instead of modified gram schmdit, just copy the "unmodified" gram schmdit line twice lol
+- use the idea of modified gram schmidt inside the lanczos function
