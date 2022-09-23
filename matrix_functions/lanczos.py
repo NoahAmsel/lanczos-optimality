@@ -13,36 +13,26 @@ def lanczos(A, q_1, k=None, reorthogonalize=False):
         k = n
 
     Q = np.empty((n, k))
+    alpha = np.empty(k)
+    beta = np.empty(k-1)  # this is really beta_2, beta_3, ...
+
     Q[:, 0] = q_1 / lin.norm(q_1)
-    alpha = []
-    beta = []  # this is really beta_2, beta_3, ...
-    for i in range(k):
-        if i == 0:
-            q_i_minus_1 = np.zeros(n)
-            beta_i = 0
-        else:
-            q_i_minus_1 = Q[:, i-1]
-            beta_i = beta[-1]
+    next_q = A @ Q[:, 0]
+    alpha[0] = np.inner(next_q, Q[:, 0])
+    next_q -= alpha[0] * Q[:, 0]
 
-        q_i = Q[:, i]
+    for i in range(1, k):
+        beta[i-1] = lin.norm(next_q)
+        # TODO: what if beta is 0
+        Q[:, i] = next_q / beta[i-1]
 
-        next_q = A @ q_i - beta_i * q_i_minus_1
-        alpha_i = np.inner(next_q, q_i)
-        alpha.append(alpha_i)
-        next_q -= alpha_i * q_i
+        next_q = A @ Q[:, i]
+        alpha[i] = np.inner(next_q, Q[:, i])
+        next_q -= alpha[i] * Q[:, i]
+        next_q -= beta[i-1] * Q[:, i-1]
+
         if reorthogonalize:
             for _ in range(2):
                 next_q -= Q[:, :(i+1)] @ (Q[:, :(i+1)].T @ next_q)
-        next_beta = lin.norm(next_q)
-
-        if (i == k-1) or (next_beta == 0):  # TODO: numerical zero?
-            break
-
-        next_q /= next_beta
-        Q[:, i+1] = next_q
-        beta.append(next_beta)
-
-    alpha = np.array(alpha)
-    beta = np.array(beta)
 
     return Q, (alpha, beta)

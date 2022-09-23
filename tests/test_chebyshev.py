@@ -19,4 +19,3 @@ def test_cheb_interpolation():
     interpolant = mf.cheb_interpolation(deg, polynomial, a, b)
     xs = np.linspace(a, b)
     assert np.allclose([interpolant(x) for x in xs], polynomial(xs))
-
