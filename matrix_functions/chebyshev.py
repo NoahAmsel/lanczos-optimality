@@ -1,3 +1,5 @@
+from itertools import cycle, islice
+
 import numpy as np
 
 
@@ -11,11 +13,14 @@ def cheb_interpolation(degree, f, a, b):
     x = cheb_nodes(degree, a=a, b=b)
     y = f(x)
     w = np.sin(np.linspace(1, 2 * degree + 1, num=(degree + 1)) * np.pi / (2 * degree + 2))
-    w *= np.array([1, -1] * degree)[:(degree+1)]
+    w *= np.array(list(islice(cycle((1, -1)), len(w))))
 
     def interpolant(z):
-        coeffs = w / np.subtract.outer(z, x)
-        return (coeffs @ y) / coeffs.T.sum(axis=0)
+        z = np.atleast_1d(z)
+        coeffs = np.equal.outer(z, x).astype(float)
+        z_isnt_interpolation_point = ~coeffs.any(axis=1)
+        coeffs[z_isnt_interpolation_point, :] = w / (np.subtract.outer(z[z_isnt_interpolation_point], x))
+        return np.squeeze((coeffs @ y) / coeffs.sum(axis=1))
 
     return interpolant
 

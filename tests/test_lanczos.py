@@ -7,7 +7,7 @@ def test_lanczos_exactly():
     A = np.array([[1, 1, 1], [1, 1, 0], [1, 0, 0]])
     x = np.ones(3)
     ref = np.column_stack([
-        np.ones(3)/np.sqrt(3), 
+        np.ones(3)/np.sqrt(3),
         np.array([1, 0, -1])/np.sqrt(2),
         np.array([-np.sqrt(2), 2*np.sqrt(2), -np.sqrt(2)])/np.sqrt(12)
     ])

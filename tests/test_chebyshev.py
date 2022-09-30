@@ -12,7 +12,7 @@ def test_cheb_interpolation():
     poly_coeff = np.random.default_rng(42).standard_normal(size=deg+1)
 
     def polynomial(x):
-        return np.vander(x, N=deg+1) @ poly_coeff
+        return np.squeeze(np.vander(np.atleast_1d(x), N=deg+1) @ poly_coeff)
 
     a = 0.5
     b = 2.5
@@ -22,6 +22,11 @@ def test_cheb_interpolation():
     assert np.allclose([interpolant(x) for x in xs], polynomial(xs))
     # vector version
     assert np.allclose(interpolant(xs), polynomial(xs))
+
+    # evaluation points are the same as the interpolation points
+    cheb_nodes = mf.cheb_nodes(deg, a, b)
+    assert np.allclose(interpolant(cheb_nodes[0]), polynomial(cheb_nodes[0]))
+    assert np.allclose(interpolant(cheb_nodes), polynomial(cheb_nodes))
 
 
 def test_cheb_vandermonde():
