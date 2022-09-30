@@ -13,9 +13,14 @@ def generate_symmetric(eigenvalues, seed=None):
     return Q @ np.diag(eigenvalues) @ Q.T
 
 
-def generate_model_problem(n, kappa, rho, lambda_1=1., seed=None):
+def generate_model_spectrum(n, kappa, rho, lambda_1=1., seed=None):
     assert 0 < rho < 1
     lambda_n = kappa * lambda_1
     gap = lambda_n - lambda_1
-    eigenvalues = lambda_1 + (np.linspace(0, n-1, num=n) / (n-1)) * gap * (rho ** np.linspace(n-1, 0, num=n))
-    return generate_symmetric(eigenvalues, seed=seed)
+    return lambda_1 + (np.linspace(0, n-1, num=n) / (n-1)) * gap * (rho ** np.linspace(n-1, 0, num=n))
+
+
+def generate_outlier_spectrum(n, kappa, lambda_1=1.):
+    eigenvalues = np.full(n, lambda_1)
+    eigenvalues[-1] = kappa * lambda_1
+    return eigenvalues

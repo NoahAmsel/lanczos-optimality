@@ -18,4 +18,19 @@ def test_cheb_interpolation():
     b = 2.5
     interpolant = mf.cheb_interpolation(deg, polynomial, a, b)
     xs = np.linspace(a, b)
+    # scalar version
     assert np.allclose([interpolant(x) for x in xs], polynomial(xs))
+    # vector version
+    assert np.allclose(interpolant(xs), polynomial(xs))
+
+
+def test_cheb_vandermonde():
+    M = mf.cheb_vandermonde(np.array([-1, -0.5, 0, 0.5, 1]), 4)
+    reference = np.array([
+        [1., 1., 1., 1., 1.],
+        [-1., -0.5, 0., 0.5, 1.],
+        [1., -0.5, -1., -0.5, 1.],
+        [-1., 1., 0., -1., 1.],
+        [1., -0.5, 1., -0.5, 1.]
+    ]).T
+    assert np.allclose(M, reference)

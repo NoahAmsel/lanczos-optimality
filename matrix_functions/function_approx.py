@@ -28,12 +28,12 @@ def lanczos_fa(f, A, x, k=None):
     return lin.norm(x) * (Q @ (T_V @ (f(T_lambda) * T_V[0, :])))
 
 
-def lanczos_fa_multi_k(f, A, x, ks=None):
+def lanczos_fa_multi_k(f, A, x, ks=None, reorthogonalize=False):
     if ks is None:
         ks = range(1, len(x)+1)
     ks = list(ks)
 
-    Q, (alpha, beta) = lanczos(A, x, max(ks))
+    Q, (alpha, beta) = lanczos(A, x, max(ks), reorthogonalize=reorthogonalize)
 
     for k in ks:
         T_lambda, T_V = scipy.linalg.eigh_tridiagonal(alpha[:k], beta[:k-1])
