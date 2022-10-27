@@ -1,5 +1,6 @@
 import numpy as np
-import numpy.linalg as lin
+
+from .utils import norm
 
 
 def lanczos(A, q_1, k=None, reorthogonalize=False):
@@ -12,17 +13,18 @@ def lanczos(A, q_1, k=None, reorthogonalize=False):
     if k is None:
         k = n
 
-    Q = np.empty((n, k))
-    alpha = np.empty(k)
-    beta = np.empty(k-1)  # this is really beta_2, beta_3, ...
+    result_type = np.result_type(A, q_1)
+    Q = np.empty((n, k), dtype=result_type)
+    alpha = np.empty(k, dtype=result_type)
+    beta = np.empty(k-1, dtype=result_type)  # this is really beta_2, beta_3, ...
 
-    Q[:, 0] = q_1 / lin.norm(q_1)
+    Q[:, 0] = q_1 / norm(q_1)
     next_q = A @ Q[:, 0]
     alpha[0] = np.inner(next_q, Q[:, 0])
     next_q -= alpha[0] * Q[:, 0]
 
     for i in range(1, k):
-        beta[i-1] = lin.norm(next_q)
+        beta[i-1] = norm(next_q)
         # TODO: what if beta is 0
         Q[:, i] = next_q / beta[i-1]
 

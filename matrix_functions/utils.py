@@ -1,5 +1,30 @@
 import numpy as np
 import numpy.linalg as lin
+import scipy.linalg
+
+import flamp
+
+
+def norm(x, ord=2):
+    if (x.dtype == np.dtype('O')) and (ord == 2):
+        return flamp.vector_norm(x)
+    else:
+        return lin.norm(x, ord=ord)
+
+
+def eigh_tridiagonal(d, e):
+    if np.result_type(d, e) == np.dtype('O'):
+        # flamp.eigen_symmetric.tridiag_eigen modifies arrays in place, so make copies
+        # it also expects e to be the same length as d, not one shorter like scipy does
+        d = d.copy()
+        e_long = flamp.empty(len(d))
+        e_long[:len(e_long)-1] = e
+        e_long[-1] = 0
+        z = flamp.eye(len(d))
+        flamp.eigen_symmetric.tridiag_eigen(flamp.gmpy2, d, e_long, z)
+        return d, z
+    else:
+        return scipy.linalg.eigh_tridiagonal(d, e)
 
 
 def generate_orthonormal(n, seed=None):

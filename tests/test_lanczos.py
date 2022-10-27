@@ -1,5 +1,7 @@
 import numpy as np
 
+import flamp
+
 import matrix_functions as mf
 
 
@@ -30,3 +32,22 @@ def test_krylov_orthonormality():
     x = np.random.randn(dim)
     Q, _ = mf.lanczos(A, x, reorthogonalize=True)
     assert np.allclose(Q.T @ Q, np.eye(dim))
+
+
+def test_high_precision():
+    with flamp.extraprec(flamp.dps_to_prec(50) - flamp.get_precision()):
+
+        dim = 100
+        temp = np.random.standard_normal((dim, dim))
+        X = flamp.to_mp(temp + temp.T)
+
+        Q, (alpha, beta) = mf.lanczos(X, flamp.ones(dim), reorthogonalize=True)
+        T = flamp.zeros((dim, dim))
+        np.fill_diagonal(T, alpha)
+        np.fill_diagonal(T[:, 1:], beta)
+        np.fill_diagonal(T[1:, :], beta)
+
+        X_lanczos = Q @ T @ Q.T
+
+        assert np.linalg.norm(X - X_lanczos, ord=np.inf) < flamp.gmpy2.mpfr('1e-47')
+        assert np.linalg.norm(Q @ Q.T - flamp.eye(dim), ord=np.inf) < flamp.gmpy2.mpfr('1e-47')

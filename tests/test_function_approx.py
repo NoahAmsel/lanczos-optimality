@@ -8,7 +8,7 @@ import matrix_functions as mf
 def test_fa_diagonal():
     a_diag = np.random.rand(3)
     A = np.diag(a_diag)
-    A_sparse = sparse.diags((a_diag), (0))    
+    A_sparse = sparse.diags((a_diag), (0))
     b = np.random.rand(3)
 
     ref = b / a_diag

@@ -1,7 +1,7 @@
 import numpy.linalg as lin
-import scipy.linalg
 
 from .lanczos import lanczos
+from .utils import norm, eigh_tridiagonal
 
 
 def naive_fa(f, A, x):
@@ -24,8 +24,8 @@ def lanczos_fa(f, A, x, k=None):
     # T = scipy.sparse.diags([beta, alpha, beta], [-1, 0, 1]) # .toarray()
     # A = Q @ T.toarray() @ Q.T ... approximately
 
-    T_lambda, T_V = scipy.linalg.eigh_tridiagonal(alpha, beta)
-    return lin.norm(x) * (Q @ (T_V @ (f(T_lambda) * T_V[0, :])))
+    T_lambda, T_V = eigh_tridiagonal(alpha, beta)
+    return norm(x) * (Q @ (T_V @ (f(T_lambda) * T_V[0, :])))
 
 
 def lanczos_fa_multi_k(f, A, x, ks=None, reorthogonalize=False):
@@ -36,5 +36,5 @@ def lanczos_fa_multi_k(f, A, x, ks=None, reorthogonalize=False):
     Q, (alpha, beta) = lanczos(A, x, max(ks), reorthogonalize=reorthogonalize)
 
     for k in ks:
-        T_lambda, T_V = scipy.linalg.eigh_tridiagonal(alpha[:k], beta[:k-1])
-        yield lin.norm(x) * (Q[:, :k] @ (T_V @ (f(T_lambda) * T_V[0, :])))
+        T_lambda, T_V = eigh_tridiagonal(alpha[:k], beta[:k-1])
+        yield norm(x) * (Q[:, :k] @ (T_V @ (f(T_lambda) * T_V[0, :])))

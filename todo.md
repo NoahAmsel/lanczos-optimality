@@ -1,3 +1,12 @@
+work on the case where there are real roots in the denominator, and numerator is apolynomial with degree < number of iterations
+
+try redoing $1/\lambda^2$ in a different norm... hasn't worked so far
+look up Anne Greenbaum / Leonid proof of Lanczos for exp(A)x
+
+also look into $\frac1{A^2 + cI}$
+
+functions $\lambda^{\alpha}$ for $\alpha \in (-1,1)$ or $\log(\lambda)$ or $\log(1+\lambda)$
+
 Instead of computing minimax approximation to $R$, we could just compute the Chebyshev interpolation. The wikipedia page for Lebesgue constant shows that this is close to the optimal polynomial interpolant. 
 
 Actually if we want a polynomial of degree $k$, just uniformly sample a million points (actually need at least $k^2$) in the range and do regression on the Chebyshev basis of size $k$.
@@ -26,3 +35,10 @@ Try to tighten $1/x^2$ using some other norm.
 
 Instead of Tyler's conditions for sqare root on $[1, k]$, maybe try the regime $[0, k]$ since in this case polynomials converge algebraically, not even exponentially.
 
+Oct 17
+For explicit form of rational approx to sqaure root, use Tyler's implementation of this logic
+http://guettel.com/rktoolbox/examples/html/example_zolotarev.html#8
+which is based on matrix sign
+he sent his in slack
+also a sidford paper that has an explicit form (search "Zolaterov")
+is there even a paper analyzing the rate of convergence
