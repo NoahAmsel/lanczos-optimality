@@ -42,3 +42,11 @@ which is based on matrix sign
 he sent his in slack
 also a sidford paper that has an explicit form (search "Zolaterov")
 is there even a paper analyzing the rate of convergence
+
+Nov 8
+Try gradient descent to find hard spectra or hard b's for a given spectrum
+Notice that we pulled out a matrix of norm 1. But this matrix might actually help bring down the norm of what's inside there
+Tyler notes:
+Michael Overton and Anne maybe used a similar idea of optimization to try to find a worst case example for some NLA problem
+"Local minimizers of the Crouzeix ratio: a nonsmooth optimization case study"
+"GMRES vs Ideal GMRES"

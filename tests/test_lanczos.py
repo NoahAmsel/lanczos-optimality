@@ -17,6 +17,14 @@ def test_lanczos_exactly():
         assert np.allclose(mf.lanczos(A, x, k)[0], ref[:, :k])
 
 
+def test_lanczos_early_stop():
+    A = np.diag([1., 2, 3, 4])
+    x = np.array([1, 0, 1, 0])
+    Q, (alpha, beta) = mf.lanczos(A, x, beta_tol=1e-14)
+    assert Q.shape == (4, 2)
+    assert np.allclose(Q @ mf.tridiagonal(alpha, beta) @ Q.transpose() @ x, A @ x)
+
+
 def test_krylov_orthonormality_diagonal():
     dim = 500
     a_diag = np.array(list(range(1, dim+1)))

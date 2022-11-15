@@ -27,6 +27,10 @@ def eigh_tridiagonal(d, e):
         return scipy.linalg.eigh_tridiagonal(d, e)
 
 
+def tridiagonal(alpha, beta):
+    return scipy.sparse.diags([beta, alpha, beta], [-1, 0, 1])
+
+
 def generate_orthonormal(n, seed=None):
     M = np.random.default_rng(seed).normal(size=(n, n))
     Q, _ = lin.qr(M)

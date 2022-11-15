@@ -20,7 +20,7 @@ def lanczos_fa(f, A, x, k=None):
 
     Q, (alpha, beta) = lanczos(A, x, k)
 
-    # We don't need to construct T, but if we did it would be this:
+    # We don't need to construct T, but if we did it would be this (see utils.tridiagonal):
     # T = scipy.sparse.diags([beta, alpha, beta], [-1, 0, 1]) # .toarray()
     # A = Q @ T.toarray() @ Q.T ... approximately
 
