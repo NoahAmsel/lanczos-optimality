@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from .utils import norm
 
@@ -13,16 +14,21 @@ def lanczos(A, q_1, k=None, reorthogonalize=False, beta_tol=0):
     if k is None:
         k = n
 
-    result_type = np.result_type(A, q_1)
-    if np.issubdtype(result_type, np.integer):
-        result_type = np.float64
-    Q = np.empty((n, k), dtype=result_type)
-    alpha = np.empty(k, dtype=result_type)
-    beta = np.empty(k-1, dtype=result_type)  # this is really beta_2, beta_3, ...
+    if isinstance(A, torch.Tensor) and isinstance(q_1, torch.Tensor):
+        Q = torch.empty((n, k), dtype=torch.double)
+        alpha = torch.empty(k, dtype=torch.double)
+        beta = torch.empty(k-1, dtype=torch.double)  # this is really beta_2, beta_3, ...
+    else:
+        result_type = np.result_type(A, q_1)
+        if np.issubdtype(result_type, np.integer):
+            result_type = np.float64
+        Q = np.empty((n, k), dtype=result_type)
+        alpha = np.empty(k, dtype=result_type)
+        beta = np.empty(k-1, dtype=result_type)  # this is really beta_2, beta_3, ...
 
     Q[:, 0] = q_1 / norm(q_1)
     next_q = A @ Q[:, 0]
-    alpha[0] = np.inner(next_q, Q[:, 0])
+    alpha[0] = next_q @ Q[:, 0]
     next_q -= alpha[0] * Q[:, 0]
 
     for i in range(1, k):
@@ -34,7 +40,7 @@ def lanczos(A, q_1, k=None, reorthogonalize=False, beta_tol=0):
         Q[:, i] = next_q / beta[i-1]
 
         next_q = A @ Q[:, i]
-        alpha[i] = np.inner(next_q, Q[:, i])
+        alpha[i] = next_q @ Q[:, i]
         next_q -= alpha[i] * Q[:, i]
         next_q -= beta[i-1] * Q[:, i-1]
 

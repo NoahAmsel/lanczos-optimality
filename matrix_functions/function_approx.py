@@ -1,11 +1,9 @@
-import numpy.linalg as lin
-
 from .lanczos import lanczos
-from .utils import norm, eigh_tridiagonal
+from .utils import norm, eigh, eigh_tridiagonal
 
 
 def naive_fa(f, A, x):
-    l, V = lin.eigh(A)
+    l, V = eigh(A)
     # A = V @ np.diag(l) @ V.T
     return V @ (f(l) * (V.T @ x))
 

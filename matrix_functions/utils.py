@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.linalg as lin
 import scipy.linalg
+import torch
 
 import flamp
 
@@ -12,8 +13,18 @@ def norm(x, ord=2):
         return lin.norm(x, ord=ord)
 
 
+def eigh(X):
+    if type(X) == torch.Tensor:
+        return torch.linalg.eigh(X)
+    else:
+        return lin.eigh(X)
+
+
 def eigh_tridiagonal(d, e):
-    if np.result_type(d, e) == np.dtype('O'):
+    if type(d) == torch.Tensor:
+        mat = torch.diag(d) + torch.diag(e, 1) + torch.diag(e, -1)
+        return torch.linalg.eigh(mat)
+    elif np.result_type(d, e) == np.dtype('O'):
         # flamp.eigen_symmetric.tridiag_eigen modifies arrays in place, so make copies
         # it also expects e to be the same length as d, not one shorter like scipy does
         d = d.copy()
