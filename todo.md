@@ -124,3 +124,11 @@ it wouldn't be that hard to nail it by just adding on a Lagrange basis polynomia
 and since the coefficient of the lagrange basis polynomial would be f(new point) which is very small, adding that new polynomial won't screw up your approximation at within the range of the dense eigenvalues
 
 see picture on my phone from today
+
+## Jan 4 2023
+after refactoring convergence.ipynb, reran some tests on the function $x^{-2}$ with condition number 1000 and 100 dimensions, and $b = 1$
+- flipped model spectrum: Lanczos does extremely close to optimal, but the uniform bound sucks. even with the $\kappa$ factor, our bound beats the old one after 10 iterations. except at the very end, around when the krylov optimal flatlines, the lanczos method flatlines a bit higher
+- one cluster of 3 points around 1, the other 97 points around 1000. same story as reverse model spectrum but even more extreme. new bound is winning after 5 iters.
+- uniform distribution: lanczos still performs optimally, but much gentler slope compared to the uniform bound. our bound wins at about 55 iters.
+- model spectrum: similar to uniform distribution but even more extreme. especially in the lower iterations, there's almost no gap between everything
+- 95 eigenvalues clustered near 1, and a few evenly spaced between 500 and 1000: again, lanczos is basically optimal. a straight line down, our bound beats old one at 20

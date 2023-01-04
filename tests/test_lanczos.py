@@ -36,7 +36,7 @@ def test_krylov_orthonormality_diagonal():
 
 def test_krylov_orthonormality():
     dim = 100
-    A = mf.generate_symmetric(mf.generate_model_spectrum(dim, 100, 0.5))
+    A = mf.generate_symmetric(mf.model_spectrum(dim, 100, 0.5))
     x = np.random.randn(dim)
     Q, _ = mf.lanczos(A, x, reorthogonalize=True)
     assert np.allclose(Q.T @ Q, np.eye(dim))

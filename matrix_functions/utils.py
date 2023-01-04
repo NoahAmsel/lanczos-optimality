@@ -14,7 +14,9 @@ def norm(x, ord=2):
 
 
 def linspace(start, stop, num=50, endpoint=True, dtype=None):
-    if (dtype == np.dtype('O')) or ((dtype is None) and (np.result_type(start, stop) == np.dtype('O'))):
+    if (dtype == np.dtype('O')) or (
+        (dtype is None) and (
+            (type(start) == flamp.gmpy2.mpfr) or (type(stop) == flamp.gmpy2.mpfr))):
         if num == 1:
             # there's a bug in flamp.linspace, see https://github.com/c-f-h/flamp/issues/1.
             # so we have to do this workaround
@@ -52,30 +54,6 @@ def eigh_tridiagonal(d, e):
 
 def tridiagonal(alpha, beta):
     return scipy.sparse.diags([beta, alpha, beta], [-1, 0, 1])
-
-
-def generate_orthonormal(n, seed=None):
-    M = np.random.default_rng(seed).normal(size=(n, n))
-    Q, _ = lin.qr(M)
-    return Q
-
-
-def generate_symmetric(eigenvalues, seed=None):
-    Q = generate_orthonormal(len(eigenvalues), seed=seed)
-    return Q @ np.diag(eigenvalues) @ Q.T
-
-
-def generate_model_spectrum(n, kappa, rho, lambda_1=1.):
-    assert 0 < rho < 1
-    lambda_n = kappa * lambda_1
-    gap = lambda_n - lambda_1
-    return lambda_1 + (np.linspace(0, n-1, num=n) / (n-1)) * gap * (rho ** np.linspace(n-1, 0, num=n))
-
-
-def generate_outlier_spectrum(n, kappa, lambda_1=1.):
-    eigenvalues = np.full(n, lambda_1)
-    eigenvalues[-1] = kappa * lambda_1
-    return eigenvalues
 
 
 class DiagonalMatrix:
