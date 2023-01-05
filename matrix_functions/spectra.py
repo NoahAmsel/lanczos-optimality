@@ -2,7 +2,7 @@ import numpy as np
 import numpy.linalg as lin
 from scipy.special import lambertw
 
-from .utils import linspace
+from .utils import exp, linspace, log, norm
 
 
 def generate_orthonormal(n, seed=None):
@@ -49,11 +49,11 @@ def start_vec(eigenvalues, ritz_values):
     # you're adding up all the small things first.
     # Also combine the two loops for the same reason
 
-    twice_log_p = np.zeros(n)  # should we match data type of lam?
+    twice_log_p = np.zeros(n, dtype=np.result_type(eigenvalues, ritz_values))  # should we match data type of lam?
     for shift in range(1, n):
-        twice_log_p -= np.log(np.abs(eigenvalues - np.roll(eigenvalues, shift)))
+        twice_log_p -= log(np.abs(eigenvalues - np.roll(eigenvalues, shift)))
     for j in range(n - 1):
-        twice_log_p -= np.log(np.abs(eigenvalues - ritz_values[j]))
+        twice_log_p -= log(np.abs(eigenvalues - ritz_values[j]))
     twice_log_p -= twice_log_p.max()  # for numerical reasons
-    p = np.exp(twice_log_p / 2)
-    return p / np.linalg.norm(p)
+    p = exp(twice_log_p / 2)
+    return p / norm(p)

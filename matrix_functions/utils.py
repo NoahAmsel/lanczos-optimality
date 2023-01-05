@@ -5,12 +5,25 @@ import torch
 
 import flamp
 
+def exp(x):
+    if x.dtype == np.dtype('O'):
+        return flamp.exp(x)
+    else:
+        return np.exp(x)
+
 
 def norm(x, ord=2):
     if (x.dtype == np.dtype('O')) and (ord == 2):
         return flamp.vector_norm(x)
     else:
         return lin.norm(x, ord=ord)
+
+
+def log(x):
+    if x.dtype == np.dtype('O'):
+        return flamp.log(x)
+    else:
+        return np.log(x)
 
 
 def linspace(start, stop, num=50, endpoint=True, dtype=None):

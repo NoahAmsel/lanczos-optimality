@@ -129,6 +129,13 @@ see picture on my phone from today
 after refactoring convergence.ipynb, reran some tests on the function $x^{-2}$ with condition number 1000 and 100 dimensions, and $b = 1$
 - flipped model spectrum: Lanczos does extremely close to optimal, but the uniform bound sucks. even with the $\kappa$ factor, our bound beats the old one after 10 iterations. except at the very end, around when the krylov optimal flatlines, the lanczos method flatlines a bit higher
 - one cluster of 3 points around 1, the other 97 points around 1000. same story as reverse model spectrum but even more extreme. new bound is winning after 5 iters.
+    - when you now pick b so that mu is evenly spaced between eigenvalues, convergence is superfast. machine precision in just a few iters. of course the uniform bound is extremely terrible, same as before
 - uniform distribution: lanczos still performs optimally, but much gentler slope compared to the uniform bound. our bound wins at about 55 iters.
+    - what are the ritz values in the n-1 th iteration for b is all ones? those at the beginning and end of the range are very accurate, those in the middle are not
 - model spectrum: similar to uniform distribution but even more extreme. especially in the lower iterations, there's almost no gap between everything
 - 95 eigenvalues clustered near 1, and a few evenly spaced between 500 and 1000: again, lanczos is basically optimal. a straight line down, our bound beats old one at 20
+
+
+### idea
+why are we using $b$, the vector we want to apply, as the vector to build the Krylov subspace
+maybe we could use b for a few iterations to get an initial estimate and then use that estimate to pick a different vector to build a new krylov subspace with
