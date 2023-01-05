@@ -39,3 +39,21 @@ def two_cluster_spectrum(n, kappa, low_cluster_size=1, low_cluster_width=0.03, h
     low_cluster = linspace(lambda_1, lambda_1 + gap * low_cluster_width, num=low_cluster_size)
     high_cluster = linspace(lambda_n - gap * high_cluster_width, lambda_n, num=(n - low_cluster_size))
     return np.hstack([low_cluster, high_cluster])
+
+
+def start_vec(eigenvalues, ritz_values):
+    n = len(eigenvalues)
+    assert len(ritz_values) == n - 1
+
+    # TODO: sort eigenvalues and ritz values before the loop, so that
+    # you're adding up all the small things first.
+    # Also combine the two loops for the same reason
+
+    twice_log_p = np.zeros(n)  # should we match data type of lam?
+    for shift in range(1, n):
+        twice_log_p -= np.log(np.abs(eigenvalues - np.roll(eigenvalues, shift)))
+    for j in range(n - 1):
+        twice_log_p -= np.log(np.abs(eigenvalues - ritz_values[j]))
+    twice_log_p -= twice_log_p.max()  # for numerical reasons
+    p = np.exp(twice_log_p / 2)
+    return p / np.linalg.norm(p)
