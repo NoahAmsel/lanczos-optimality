@@ -45,7 +45,7 @@ def lanczos(A, q_1, k=None, reorthogonalize=False, beta_tol=0):
         next_q -= beta[i-1] * Q[:, i-1]
 
         if reorthogonalize:
-            for _ in range(2):
+            for _ in range(10):
                 next_q -= Q[:, :(i+1)] @ (Q[:, :(i+1)].T @ next_q)
 
     return Q, (alpha, beta)
