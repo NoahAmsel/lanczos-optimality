@@ -5,6 +5,7 @@ import torch
 
 import flamp
 
+
 def exp(x):
     if x.dtype == np.dtype('O'):
         return flamp.exp(x)
