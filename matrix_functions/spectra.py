@@ -43,17 +43,16 @@ def two_cluster_spectrum(n, kappa, low_cluster_size=1, low_cluster_width=0.03, h
 
 def start_vec(eigenvalues, ritz_values):
     n = len(eigenvalues)
-    assert len(ritz_values) == n - 1
+    # assert len(ritz_values) == n - 1
 
     # TODO: sort eigenvalues and ritz values before the loop, so that
     # you're adding up all the small things first.
     # Also combine the two loops for the same reason
-
-    twice_log_p = np.zeros(n, dtype=np.result_type(eigenvalues, ritz_values))  # should we match data type of lam?
+    twice_log_p = np.zeros(n, dtype=np.result_type(eigenvalues, ritz_values, float(1.)))  # should we match data type of lam?
     for shift in range(1, n):
         twice_log_p -= log(np.abs(eigenvalues - np.roll(eigenvalues, shift)))
-    for j in range(n - 1):
-        twice_log_p -= log(np.abs(eigenvalues - ritz_values[j]))
+    for ritz_value in ritz_values:
+        twice_log_p -= log(np.abs(eigenvalues - ritz_value))
     twice_log_p -= twice_log_p.max()  # for numerical reasons
     p = exp(twice_log_p / 2)
     return p / norm(p)
