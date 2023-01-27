@@ -66,10 +66,6 @@ def eigh_tridiagonal(d, e):
         return scipy.linalg.eigh_tridiagonal(d, e)
 
 
-def tridiagonal(alpha, beta):
-    return scipy.sparse.diags([beta, alpha, beta], [-1, 0, 1])
-
-
 class DiagonalMatrix:
     def __init__(self, diag):
         self.diag = diag
@@ -82,6 +78,16 @@ class DiagonalMatrix:
         # This looks complicated but this let's the same formula
         # work when other is a vector or a matrix
         return (other.T * self.diag).T
+
+    def __pow__(self, other):
+        return DiagonalMatrix(self.diag ** other)
+
+    def __rmatmul__(self, other):
+        return self.__matmul__(other.T).T
+
+    @property
+    def T(self):
+        return self
 
     @property
     def dtype(self):

@@ -1,5 +1,5 @@
-from .lanczos import lanczos
-from .utils import norm, eigh, eigh_tridiagonal
+from .lanczos_decomp import LanczosDecomposition
+from .utils import eigh
 
 
 def naive_fa(f, A, x):
@@ -12,27 +12,6 @@ def diagonal_fa(f, a_diag, x):
     return f(a_diag) * x
 
 
-def lanczos_fa(f, A, x, k=None):
-    """See Stability of Lanczos Method page 5
-    """
-
-    Q, (alpha, beta) = lanczos(A, x, k)
-
-    # We don't need to construct T, but if we did it would be this (see utils.tridiagonal):
-    # T = scipy.sparse.diags([beta, alpha, beta], [-1, 0, 1]) # .toarray()
-    # A = Q @ T.toarray() @ Q.T ... approximately
-
-    T_lambda, T_V = eigh_tridiagonal(alpha, beta)
-    return norm(x) * (Q @ (T_V @ (f(T_lambda) * T_V[0, :])))
-
-
-def lanczos_fa_multi_k(f, A, x, ks=None, reorthogonalize=False):
-    if ks is None:
-        ks = range(1, len(x)+1)
-    ks = list(ks)
-
-    Q, (alpha, beta) = lanczos(A, x, max(ks), reorthogonalize=reorthogonalize)
-
-    for k in ks:
-        T_lambda, T_V = eigh_tridiagonal(alpha[:k], beta[:k-1])
-        yield norm(x) * (Q[:, :k] @ (T_V @ (f(T_lambda) * T_V[0, :])))
+def lanczos_fa(f, A, x, k=None, reorthogonalize=False, beta_tol=0):
+    return LanczosDecomposition.fit(
+        A, x, k=k, reorthogonalize=reorthogonalize, beta_tol=beta_tol).apply_function_to_start(f)

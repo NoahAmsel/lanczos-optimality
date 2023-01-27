@@ -49,7 +49,8 @@ def start_vec(eigenvalues, ritz_values):
     # you're adding up all the small things first.
     # Also combine the two loops for the same reason
 
-    twice_log_p = np.zeros(n, dtype=np.result_type(eigenvalues, ritz_values))  # should we match data type of lam?
+    # in case both dtypes are integral, the 1.0 turns it into float
+    twice_log_p = 1.0 * np.zeros(n, dtype=np.result_type(eigenvalues, ritz_values))  # should we match data type of lam?
     for shift in range(1, n):
         twice_log_p -= log(np.abs(eigenvalues - np.roll(eigenvalues, shift)))
     for j in range(n - 1):
