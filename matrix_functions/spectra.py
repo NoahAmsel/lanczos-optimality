@@ -30,6 +30,16 @@ def flipped_model_spectrum(n, kappa, rho, lambda_1=1.):
     return lambda_1 + gap * np.real(lambertw(rho * linspace(0, n-1, num=n)) / lambertw(rho * (n-1)))
 
 
+def geometric_spectrum(n, kappa, rho, lambda_1=1.):
+    # when rho < 1, there are a few small elements and many large ones
+    # when rho > 1, there are many small elements and a few large ones
+    assert 0 < rho 
+    # this ranges from 0 to 1
+    steps = (1 - (rho ** linspace(0, 1, n))) / (1 - rho)
+    #                 this ranges from 1 to kappa
+    return lambda_1 * (1 + steps * (kappa - 1))
+
+
 def two_cluster_spectrum(n, kappa, low_cluster_size=1, low_cluster_width=0.03, high_cluster_width=None, lambda_1=1.):
     if high_cluster_width is None:
         high_cluster_width = low_cluster_width

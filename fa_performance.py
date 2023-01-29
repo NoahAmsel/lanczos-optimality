@@ -62,6 +62,18 @@ def fa_performance(f, a_diag, b, ks):
 
     cols = dict()
 
+    # Uniform bound, approximating the l-infinity approximant by...
+    lambda_min = a_diag.min()
+    lambda_max = a_diag.max()
+    dim = len(a_diag)
+    # ... Chebyshev interpolation
+    unif_label = "$2||b|| \cdot \min_{\mathrm{deg}(p)<k} ||p - f||_{[\lambda_{\min}, \lambda_{\max}]}$"
+    cols[unif_label] = 2 * mf.norm(b) * chebyshev_interpolant_linf_error_curve(
+        lambda_min, lambda_max, f, ks, 10 * dim)
+    # # Chebyshev regression
+    # cols["Chebyshev regression $* 2||x||$"] = 2 * mf.norm(x) * chebyshev_regression_linf_error_curve(
+    #     lambda_min, lambda_max, f, ks, 10 * dim)
+
     # Lanczos-FA
     cols["$||\mathrm{lan}_k - f(A)b||_2$"] = lanczos_error_curve(f, A_decomp, ground_truth, ks)
 
@@ -71,18 +83,6 @@ def fa_performance(f, a_diag, b, ks):
     # # ...with respect to A norm
     # sqrtA = mf.DiagonalMatrix(flamp.sqrt(a_diag))
     # cols["Krlov subspace (A-norm)"] = krylov_optimal_error_curve(A_decomp.Q, ground_truth, ks, sqrtA)
-
-    # Uniform bound, approximating the l-infinity approximant by...
-    lambda_min = a_diag.min()
-    lambda_max = a_diag.max()
-    dim = len(a_diag)
-    # ... Chebyshev interpolation
-    unif_label = "$2||b|| \min_{\mathrm{deg}(p)<k} ||p - f||_{[\lambda_{\min}, \lambda_{\max}]}$"
-    cols[unif_label] = 2 * mf.norm(b) * chebyshev_interpolant_linf_error_curve(
-        lambda_min, lambda_max, f, ks, 10 * dim)
-    # # Chebyshev regression
-    # cols["Chebyshev regression $* 2||x||$"] = 2 * mf.norm(x) * chebyshev_regression_linf_error_curve(
-    #     lambda_min, lambda_max, f, ks, 10 * dim)
 
     results = pd.concat(cols, axis=1)
     assert (results != flamp.gmpy2.mpfr('nan')).all().all()
