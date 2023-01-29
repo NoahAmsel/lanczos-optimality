@@ -47,3 +47,8 @@ def tyler_inv_sqrt(q, a, b):
 def tylers_sign(q, a, b):
     f = tyler_inv_sqrt(q, a, b)
     return lambda x: x * f(x ** 2)
+
+
+def tylers_sqrt(q, a, b):
+    f = tyler_inv_sqrt(q, a, b)
+    return lambda x: 1./f(x)
