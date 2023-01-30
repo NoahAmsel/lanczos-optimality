@@ -13,6 +13,7 @@ import scipy.special as sps
 
 
 def tyler_inv_sqrt(q, a, b):
+    # TODO: should we change uses of np to flamp?
     # TODO: when a,b are extraprecision, see below
     # https://mpmath.org/doc/current/functions/elliptic.html?highlight=elliptic#jacobi-elliptic-functions
 

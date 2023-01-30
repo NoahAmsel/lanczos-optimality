@@ -60,13 +60,13 @@ def our_bound(krylov_basis, ground_truth, ks, denom_degree, kappa):
     # Bound doesn't exist unless k - denom_degree + 1 > 0
     filtered_ks = list(filter(lambda k: k - denom_degree + 1 > 0, ks))
     krylov_optimal = krylov_optimal_error_curve(
-        krylov_basis, ground_truth, filtered_ks - denom_degree + 1, norm_matrix_sqrt=None)
+        krylov_basis, ground_truth, np.array(filtered_ks) - denom_degree + 1, norm_matrix_sqrt=None)
     for k in filtered_ks:
         our_bound.loc[k] = denom_degree * (kappa ** denom_degree) * krylov_optimal.loc[k - denom_degree + 1]
     return our_bound
 
 
-def fa_performance(f, a_diag, b, ks, denom_degree=None):
+def fa_performance(f, a_diag, b, ks, denom_degree=None, relative_error=True):
     ground_truth = mf.diagonal_fa(f, a_diag, b)
     A = mf.DiagonalMatrix(a_diag)
     A_decomp = mf.LanczosDecomposition.fit(A, b, max(ks), reorthogonalize=True)
@@ -99,6 +99,11 @@ def fa_performance(f, a_diag, b, ks, denom_degree=None):
         cols["Our Bound"] = our_bound(A_decomp.Q, ground_truth, ks, denom_degree, lambda_max / lambda_min)
 
     results = pd.concat(cols, axis=1)
+    # notice that it's relative to the *Euclidean* norm of the ground truth
+    if relative_error:
+        results /= mf.norm(ground_truth)
+
     assert (results != flamp.gmpy2.mpfr('nan')).all().all()
     assert (~pd.isna(results)).all().all()
+
     return results

@@ -7,9 +7,27 @@ import matrix_functions as mf
 from fa_performance import fa_performance
 from zolotarev import tylers_sqrt
 
-num_digits = 350
-flamp.set_dps(num_digits)  # compute with this many decimal digits precision
-print(f"Using {num_digits} digits of precision")
+
+def plot_convergence_curves(results, error_label, k_label, title=None, ax=None):
+    str_error_label = "error" if error_label is None else error_label
+    str_k_label = "k" if k_label is None else k_label
+
+    results_long = results.reset_index(names=str_k_label).melt(
+        id_vars=[str_k_label], value_name=str_error_label, var_name="Approximant")
+
+    sns.lineplot(
+        x=str_k_label,
+        y=str_error_label,
+        hue="Approximant",
+        style="Approximant",
+        data=results_long,
+        ax=ax,
+    ).set(
+        title=title,
+        xlabel=k_label,
+        ylabel=error_label,
+        yscale='log'
+    )
 
 
 def curves(a_diag, b, ks, functions_dict, relative_error, denom_degrees_dict=None, plot_optimality_ratios=True):
@@ -35,27 +53,14 @@ def curves(a_diag, b, ks, functions_dict, relative_error, denom_degrees_dict=Non
             denom_degree = denom_degrees_dict[fun_label]
         else:
             denom_degree = None
-        results = fa_performance(fun, a_diag, b, ks, denom_degree=denom_degree)
+        results = fa_performance(fun, a_diag, b, ks, denom_degree=denom_degree, relative_error=relative_error)
 
-        # notice that it's relative to the *Euclidean* norm of the ground truth
-        if relative_error:
-            results /= mf.norm(mf.diagonal_fa(fun, a_diag, b))
-
-        results_long = results.reset_index(names=k_label).melt(
-            id_vars=[k_label], value_name=error_label, var_name="Approximant")
-
-        sns.lineplot(
-            x=k_label,
-            y=error_label,
-            hue="Approximant",
-            style="Approximant",
-            data=results_long,
-            ax=axs[0, fun_ix],
-        ).set(
+        plot_convergence_curves(
+            results,
+            error_label=error_label if (fun_ix == 0) else None,
+            k_label=None,
             title=fun_label,
-            xlabel=None,
-            ylabel=error_label if (fun_ix == 0) else None,
-            yscale='log'
+            ax=axs[0, fun_ix]
         )
 
         if plot_optimality_ratios:
@@ -68,7 +73,6 @@ def curves(a_diag, b, ks, functions_dict, relative_error, denom_degrees_dict=Non
 
     fig.suptitle("Approximation of $f(A)b$")  # should we say spectrum is this, $b = that$
     fig.supxlabel(k_label)
-    # fig.supylabel(error_label)
 
     # All subplots' legends are the same, so turn off all but the last's
     for ax in axs[0, :-1]:
@@ -77,42 +81,46 @@ def curves(a_diag, b, ks, functions_dict, relative_error, denom_degrees_dict=Non
     return fig
 
 
-dim = 100
-kappa = flamp.gmpy2.mpfr(100.)
-lambda_min = flamp.gmpy2.mpfr(1.)
-a_diag = mf.geometric_spectrum(dim, kappa, rho=1e-5, lambda_1=lambda_min)
-b = flamp.ones(dim)
+if __name__ == "__main__":
+    flamp.set_dps(350)  # compute with this many decimal digits precision
+    print(f"Using {flamp.get_dps()} digits of precision")
 
-# ks = list(range(1, dim//10)) + list(range(dim//10, dim-5, 5)) + list(range(dim-5, dim+1))
-ks = list(range(1, dim//10)) + list(range(dim//10, dim, 5))
+    dim = 100
+    kappa = flamp.gmpy2.mpfr(100.)
+    lambda_min = flamp.gmpy2.mpfr(1.)
+    a_diag = mf.geometric_spectrum(dim, kappa, rho=1e-5, lambda_1=lambda_min)
+    b = flamp.ones(dim)
 
-zolotarev_degree = 13
+    # ks = list(range(1, dim//10)) + list(range(dim//10, dim-5, 5)) + list(range(dim-5, dim+1))
+    ks = list(range(1, dim//10)) + list(range(dim//10, dim, 5))
 
-functions_table = pd.DataFrame(
-    index=[
-        r"$A^{-2}b$",
-        r"$e^Ab$",
-        r"$\sqrt{A}b$",
-        f"$\\mathrm{{zolotarev}}_{{{zolotarev_degree}}}(A)b$"
-    ],
-    data={
-        "function": [
-            lambda x: x**(-2),
-            flamp.exp,
-            flamp.sqrt,
-            tylers_sqrt(zolotarev_degree, float(a_diag.min()), float(a_diag.max()))
+    zolotarev_degree = 13
+
+    functions_table = pd.DataFrame(
+        index=[
+            r"$A^{-2}b$",
+            r"$e^Ab$",
+            r"$\sqrt{A}b$",
+            f"$\\mathrm{{zolotarev}}_{{{zolotarev_degree}}}(A)b$"
         ],
-        "denom_degree": [2, -1, -1, zolotarev_degree]
-    }
-)
+        data={
+            "function": [
+                lambda x: x**(-2),
+                flamp.exp,
+                flamp.sqrt,
+                tylers_sqrt(zolotarev_degree, float(a_diag.min()), float(a_diag.max()))
+            ],
+            "denom_degree": [2, -1, -1, zolotarev_degree]
+        }
+    )
 
-fig1_curves = functions_table.loc[[r"$A^{-2}b$", r"$e^Ab$", r"$\sqrt{A}b$"]]
-fig1 = curves(a_diag, b, ks, fig1_curves["function"], relative_error=True)
-fig1.savefig('output/lanczos_performance.svg')
+    fig1_curves = functions_table.loc[[r"$A^{-2}b$", r"$e^Ab$", r"$\sqrt{A}b$"]]
+    fig1 = curves(a_diag, b, ks, fig1_curves["function"], relative_error=True)
+    fig1.savefig('output/lanczos_performance.svg')
 
-fig2_curves = functions_table.loc[[r"$A^{-2}b$", r"$e^Ab$", f"$\\mathrm{{zolotarev}}_{{{zolotarev_degree}}}(A)b$"]]
-fig1 = curves(
-    a_diag, b, ks, fig2_curves["function"],
-    relative_error=True, denom_degrees_dict=fig2_curves["denom_degree"],
-    plot_optimality_ratios=False)
-fig1.savefig('output/our_bound.svg')
+    fig2_curves = functions_table.loc[[r"$A^{-2}b$", r"$e^Ab$", f"$\\mathrm{{zolotarev}}_{{{zolotarev_degree}}}(A)b$"]]
+    fig1 = curves(
+        a_diag, b, ks, fig2_curves["function"],
+        relative_error=True, denom_degrees_dict=fig2_curves["denom_degree"],
+        plot_optimality_ratios=False)
+    fig1.savefig('output/our_bound.svg')
