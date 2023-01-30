@@ -13,6 +13,9 @@ import scipy.special as sps
 
 
 def tyler_inv_sqrt(q, a, b):
+    # TODO: when a,b are extraprecision, see below
+    # https://mpmath.org/doc/current/functions/elliptic.html?highlight=elliptic#jacobi-elliptic-functions
+
     # In the sidford paper, the approximation is valid in the range [gamma, 1]
     # that corresponds to [min(abs(lam)), max(abs(lam))] / max(abs(lam))
     # since sidford's gamma =tyler's sqrt(k2)

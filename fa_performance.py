@@ -7,7 +7,7 @@ import matrix_functions as mf
 
 
 def lanczos_error_curve(f, A_decomp, ground_truth, ks):
-    lanczos_errors = pd.Series(index=ks, dtype=np.float64)
+    lanczos_errors = pd.Series(index=ks, dtype=np.dtype('O'))
     for k in tqdm(ks):
         lanczos_estimate = A_decomp.prefix(k).apply_function_to_start(f)
         lanczos_errors.loc[k] = mf.norm(lanczos_estimate - ground_truth)
@@ -19,7 +19,7 @@ def krylov_optimal_error_curve(krylov_basis, ground_truth, ks, norm_matrix_sqrt=
         krylov_basis = norm_matrix_sqrt @ krylov_basis
         ground_truth = norm_matrix_sqrt @ ground_truth
 
-    krylov_errors = pd.Series(index=ks, dtype=np.float64)
+    krylov_errors = pd.Series(index=ks, dtype=np.dtype('O'))
     for k in tqdm(ks):
         # # _, squared_l2_error, _, _ = lin.lstsq(krylov_basis[:, :k], ground_truth, rcond=None)
         # # krylov_errors.loc[k] = np.sqrt(squared_l2_error.item()))
@@ -31,7 +31,7 @@ def krylov_optimal_error_curve(krylov_basis, ground_truth, ks, norm_matrix_sqrt=
 def chebyshev_interpolant_linf_error_curve(interval_lower, interval_upper, f, ks, num_points):
     spectrum_discritization = mf.cheb_nodes(num_points, a=interval_lower, b=interval_upper, dtype=np.dtype('O'))
     f_spectrum_discritization = f(spectrum_discritization)
-    cheb_interpolant_errors = pd.Series(index=ks, dtype=np.float64)
+    cheb_interpolant_errors = pd.Series(index=ks, dtype=np.dtype('O'))
     for k in tqdm(ks):
         # Degree of polynomial must be strictly less than dimension of Krylov subspace used in Lanczos (so k - 1)
         cheb_interpolant = mf.cheb_interpolation(k - 1, f, interval_lower, interval_upper, dtype=np.dtype('O'))
@@ -46,7 +46,7 @@ def chebyshev_regression_linf_error_curve(interval_lower, interval_upper, f, ks,
     spectrum_discritization = mf.cheb_nodes(num_points, a=interval_lower, b=interval_upper, dtype=np.dtype('O'))
     f_spectrum_discritization = f(spectrum_discritization)
     CV = mf.cheb_vandermonde(spectrum_discritization, max(ks))
-    cheb_regression_errors = pd.Series(index=ks, dtype=np.float64)
+    cheb_regression_errors = pd.Series(index=ks, dtype=np.dtype('O'))
     for k in tqdm(ks):
         cheb_coeffs = flamp.qr_solve(CV[:, :k], f_spectrum_discritization)
         # cheb_coeffs, _, _, _ = lin.lstsq(CV[:, :k], f_spectrum_discritization, rcond=None)
@@ -55,7 +55,18 @@ def chebyshev_regression_linf_error_curve(interval_lower, interval_upper, f, ks,
     return cheb_regression_errors
 
 
-def fa_performance(f, a_diag, b, ks):
+def our_bound(krylov_basis, ground_truth, ks, denom_degree, kappa):
+    our_bound = pd.Series(data=np.inf, index=ks, dtype=np.dtype('O'))
+    # Bound doesn't exist unless k - denom_degree + 1 > 0
+    filtered_ks = list(filter(lambda k: k - denom_degree + 1 > 0, ks))
+    krylov_optimal = krylov_optimal_error_curve(
+        krylov_basis, ground_truth, filtered_ks - denom_degree + 1, norm_matrix_sqrt=None)
+    for k in filtered_ks:
+        our_bound.loc[k] = denom_degree * (kappa ** denom_degree) * krylov_optimal.loc[k - denom_degree + 1]
+    return our_bound
+
+
+def fa_performance(f, a_diag, b, ks, denom_degree=None):
     ground_truth = mf.diagonal_fa(f, a_diag, b)
     A = mf.DiagonalMatrix(a_diag)
     A_decomp = mf.LanczosDecomposition.fit(A, b, max(ks), reorthogonalize=True)
@@ -67,7 +78,7 @@ def fa_performance(f, a_diag, b, ks):
     lambda_max = a_diag.max()
     dim = len(a_diag)
     # ... Chebyshev interpolation
-    unif_label = "$2||b|| \cdot \min_{\mathrm{deg}(p)<k} ||p - f||_{[\lambda_{\min}, \lambda_{\max}]}$"
+    unif_label = r"$2||b|| \cdot \min_{\mathrm{deg}(p)<k} ||p - f||_{[\lambda_{\min}, \lambda_{\max}]}$"
     cols[unif_label] = 2 * mf.norm(b) * chebyshev_interpolant_linf_error_curve(
         lambda_min, lambda_max, f, ks, 10 * dim)
     # # Chebyshev regression
@@ -75,14 +86,17 @@ def fa_performance(f, a_diag, b, ks):
     #     lambda_min, lambda_max, f, ks, 10 * dim)
 
     # Lanczos-FA
-    cols["$||\mathrm{lan}_k - f(A)b||_2$"] = lanczos_error_curve(f, A_decomp, ground_truth, ks)
+    cols[r"$||\mathrm{lan}_k - f(A)b||_2$"] = lanczos_error_curve(f, A_decomp, ground_truth, ks)
 
     # Optimal approximation to ground truth in Krylov subspace...
     # ...with respect to either Euclidean norm
-    cols["$||\mathrm{opt}_k(I) - f(A)b||_2$"] = krylov_optimal_error_curve(A_decomp.Q, ground_truth, ks)
+    cols[r"$||\mathrm{opt}_k(I) - f(A)b||_2$"] = krylov_optimal_error_curve(A_decomp.Q, ground_truth, ks)
     # # ...with respect to A norm
     # sqrtA = mf.DiagonalMatrix(flamp.sqrt(a_diag))
-    # cols["Krlov subspace (A-norm)"] = krylov_optimal_error_curve(A_decomp.Q, ground_truth, ks, sqrtA)
+    # cols[r"$||\mathrm{opt}_k(A) - f(A)b||_2$"] = krylov_optimal_error_curve(A_decomp.Q, ground_truth, ks, sqrtA)
+
+    if denom_degree is not None:
+        cols["Our Bound"] = our_bound(A_decomp.Q, ground_truth, ks, denom_degree, lambda_max / lambda_min)
 
     results = pd.concat(cols, axis=1)
     assert (results != flamp.gmpy2.mpfr('nan')).all().all()
