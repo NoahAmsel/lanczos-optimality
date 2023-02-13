@@ -33,3 +33,6 @@ class LanczosDecomposition:
     def apply_function_to_start(self, f):
         T_lambda, T_V = eigh_tridiagonal(self.T.main_diagonal, self.T.off_diagonal)
         return self.norm_start_vector * (self.Q @ (T_V @ (f(T_lambda) * T_V[0, :])))
+
+    def ritz_values(self):
+        return eigh_tridiagonal(self.T.main_diagonal, self.T.off_diagonal, eigvals_only=True)

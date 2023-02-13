@@ -48,7 +48,7 @@ def eigh(X):
         return lin.eigh(X)
 
 
-def eigh_tridiagonal(d, e):
+def eigh_tridiagonal(d, e, eigvals_only=False):
     if type(d) == torch.Tensor:
         mat = torch.diag(d) + torch.diag(e, 1) + torch.diag(e, -1)
         return torch.linalg.eigh(mat)
@@ -59,11 +59,15 @@ def eigh_tridiagonal(d, e):
         e_long = flamp.empty(len(d))
         e_long[:len(e_long)-1] = e
         e_long[-1] = 0
-        z = flamp.eye(len(d))
-        flamp.eigen_symmetric.tridiag_eigen(flamp.gmpy2, d, e_long, z)
-        return d, z
+        if eigvals_only:
+            flamp.eigen_symmetric.tridiag_eigen(flamp.gmpy2, d, e_long, None)
+            return d
+        else:
+            z = flamp.eye(len(d))
+            flamp.eigen_symmetric.tridiag_eigen(flamp.gmpy2, d, e_long, z)
+            return d, z
     else:
-        return scipy.linalg.eigh_tridiagonal(d, e)
+        return scipy.linalg.eigh_tridiagonal(d, e, eigvals_only=eigvals_only)
 
 
 class DiagonalMatrix:

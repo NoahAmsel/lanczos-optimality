@@ -1,7 +1,7 @@
 import flamp
 from matplotlib import pyplot as plt
-import pandas as pd
 import seaborn as sns
+from tqdm import tqdm
 
 import matrix_functions as mf
 from fa_performance import fa_performance
@@ -30,7 +30,7 @@ def plot_convergence_curves(results, error_label, k_label, title=None, ax=None):
     )
 
 
-def curves(a_diag, b, ks, functions_dict, relative_error, denom_degrees_dict=None, plot_optimality_ratios=True):
+def curves(a_diag, b, ks, functions_dict, relative_error, plot_our_bound=True, plot_optimality_ratios=True):
     fig_height = 4.8  # default. shouldn't matter when using svg
     row_heights = [1, 0.3] if plot_optimality_ratios else [1]
     fig, axs = plt.subplots(
@@ -47,13 +47,10 @@ def curves(a_diag, b, ks, functions_dict, relative_error, denom_degrees_dict=Non
         error_label = "Error"
     k_label = "Number of matrix-vector products ($k$)"
 
-    for fun_ix, (fun_label, fun) in enumerate(functions_dict.items()):
-        print(f"Plotting {fun_label}...")
-        if (denom_degrees_dict is not None) and (denom_degrees_dict[fun_label] > 0):
-            denom_degree = denom_degrees_dict[fun_label]
-        else:
-            denom_degree = None
-        results = fa_performance(fun, a_diag, b, ks, denom_degree=denom_degree, relative_error=relative_error)
+    for fun_ix, (fun_label, fun) in enumerate(tqdm(functions_dict.items())):
+        results = fa_performance(fun, a_diag, b, ks,
+                                 relative_error=relative_error,
+                                 our_bound=plot_our_bound)
 
         plot_convergence_curves(
             results,
@@ -81,6 +78,12 @@ def curves(a_diag, b, ks, functions_dict, relative_error, denom_degrees_dict=Non
     return fig
 
 
+def inverse_monomial(deg):
+    def f(x): return x**(-deg)
+    f.degree = (0, deg)
+    return f
+
+
 if __name__ == "__main__":
     flamp.set_dps(350)  # compute with this many decimal digits precision
     print(f"Using {flamp.get_dps()} digits of precision")
@@ -95,32 +98,19 @@ if __name__ == "__main__":
     ks = list(range(1, dim//10)) + list(range(dim//10, dim, 5))
 
     zolotarev_degree = 13
+    name2function = {
+        r"$A^{-2}b$": inverse_monomial(2),
+        r"$e^Ab$": flamp.exp,
+        r"$\sqrt{A}b$": flamp.sqrt,
+        f"$\\mathrm{{zolotarev}}_{{{zolotarev_degree}}}(A)b$": tylers_sqrt(
+            zolotarev_degree, float(a_diag.min()), float(a_diag.max()))
+    }
 
-    functions_table = pd.DataFrame(
-        index=[
-            r"$A^{-2}b$",
-            r"$e^Ab$",
-            r"$\sqrt{A}b$",
-            f"$\\mathrm{{zolotarev}}_{{{zolotarev_degree}}}(A)b$"
-        ],
-        data={
-            "function": [
-                lambda x: x**(-2),
-                flamp.exp,
-                flamp.sqrt,
-                tylers_sqrt(zolotarev_degree, float(a_diag.min()), float(a_diag.max()))
-            ],
-            "denom_degree": [2, -1, -1, zolotarev_degree]
-        }
-    )
-
-    fig1_curves = functions_table.loc[[r"$A^{-2}b$", r"$e^Ab$", r"$\sqrt{A}b$"]]
-    fig1 = curves(a_diag, b, ks, fig1_curves["function"], relative_error=True)
+    fig1_funs = {name: name2function[name] for name in [r"$A^{-2}b$", r"$e^Ab$", r"$\sqrt{A}b$"]}
+    fig1 = curves(a_diag, b, ks, fig1_funs, plot_our_bound=False, relative_error=True)
     fig1.savefig('output/lanczos_performance.svg')
 
-    fig2_curves = functions_table.loc[[r"$A^{-2}b$", r"$e^Ab$", f"$\\mathrm{{zolotarev}}_{{{zolotarev_degree}}}(A)b$"]]
-    fig1 = curves(
-        a_diag, b, ks, fig2_curves["function"],
-        relative_error=True, denom_degrees_dict=fig2_curves["denom_degree"],
-        plot_optimality_ratios=False)
-    fig1.savefig('output/our_bound.svg')
+    fig2_funs = {name: name2function[name] for name in [
+        r"$A^{-2}b$",  f"$\\mathrm{{zolotarev}}_{{{zolotarev_degree}}}(A)b$"]}  # r"$e^Ab$",
+    fig2 = curves(a_diag, b, ks, fig2_funs, relative_error=True, plot_optimality_ratios=False)
+    fig2.savefig('output/our_bound.svg')
