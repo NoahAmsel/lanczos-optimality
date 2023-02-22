@@ -24,8 +24,10 @@ def krylov_optimal_error_curve(krylov_basis, ground_truth, ks, norm_matrix_sqrt=
         # # _, squared_l2_error, _, _ = lin.lstsq(krylov_basis[:, :k], ground_truth, rcond=None)
         # # krylov_errors.loc[k] = np.sqrt(squared_l2_error.item()))
         coeff = flamp.qr_solve(krylov_basis[:, :k], ground_truth)
-        residual = krylov_basis[:, :k] @ coeff - ground_truth
-        krylov_errors.loc[k] = mf.norm(residual) if norm_matrix_sqrt is None else mf.norm(norm_matrix_sqrt @ residual)
+        error = krylov_basis[:, :k] @ coeff - ground_truth
+        # NOTE: when using norm_matrix_sqrt, it's already "baked" into `krylov_basis`
+        # So at this point, we should just use the l2 norm:
+        krylov_errors.loc[k] = mf.norm(error)
     return krylov_errors
 
 
@@ -75,6 +77,7 @@ def fa_performance(f, a_diag, b, ks, relative_error=True,
                    krylov_optimal=True,
                    krylov_optimal_Anorm=False,
                    our_bound=True):
+    # TODO: add a "tqdm" option that, instead of passing ks below, passes tqdm(ks)
 
     ground_truth = mf.diagonal_fa(f, a_diag, b)
     A = mf.DiagonalMatrix(a_diag)
