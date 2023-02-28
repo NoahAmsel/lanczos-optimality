@@ -2,7 +2,19 @@ import flamp  # TODO: shouldn't automatically assume we're using flamp
 import numpy as np
 import pandas as pd
 
+import baryrat
+
 import matrix_functions as mf
+
+from tqdm import tqdm
+
+# def lanczos_error_curve_multifunction(name2function, A_decomp, ground_truth, ks, norm_matrix_sqrt=None):
+#     lanczos_errors = pd.DataFrame(index=ks, columns=list(name2function), dtype=np.dtype('O'))
+#     for k in ks:
+#         lanczos_estimate = A_decomp.prefix(k).apply_function_to_start(f)
+#         error = lanczos_estimate - ground_truth
+#         lanczos_errors.loc[k] = mf.norm(error) if norm_matrix_sqrt is None else mf.norm(norm_matrix_sqrt @ error)
+#     return lanczos_errors    
 
 
 def lanczos_error_curve(f, A_decomp, ground_truth, ks, norm_matrix_sqrt=None):
@@ -129,3 +141,32 @@ def fa_performance(f, a_diag, b, ks, relative_error=True,
     assert (~pd.isna(results)).all().all()
 
     return results
+
+
+def fun_vs_rationals(f, a_diag, b, ks, degrees, relative_error=True):
+    ground_truth = mf.diagonal_fa(f, a_diag, b)
+    A = mf.DiagonalMatrix(a_diag)
+    A_decomp = mf.LanczosDecomposition.fit(A, b, max(ks), reorthogonalize=True)
+
+    cols = dict()
+    deg2unif_errors = dict()
+
+    cols["f"] = lanczos_error_curve(f, A_decomp, ground_truth, ks)
+
+    for degree in tqdm(degrees):
+        approximant, info = baryrat.brasil(f, (a_diag.min(), a_diag.max()), degree, tol=0.0001, info=True)
+        assert info.converged
+        cols[str(degree)] = lanczos_error_curve(approximant, A_decomp, ground_truth, ks)
+        deg2unif_errors[degree] = info.error
+
+    results = pd.concat(cols, axis=1)
+    uniform_errors = pd.Series(deg2unif_errors)
+    # notice that it's relative to the *Euclidean* norm of the ground truth
+    if relative_error:
+        results /= mf.norm(ground_truth)
+        uniform_errors /= mf.norm(ground_truth)
+
+    assert (results != flamp.gmpy2.mpfr('nan')).all().all()
+    assert (~pd.isna(results)).all().all()
+
+    return results, uniform_errors

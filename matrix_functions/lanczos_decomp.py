@@ -1,3 +1,5 @@
+from functools import cache
+
 import scipy.sparse
 
 from .lanczos import lanczos
@@ -15,6 +17,10 @@ class SymmetricTridiagonal:
     def to_sparse(self):
         return scipy.sparse.diags([self.off_diagonal, self.main_diagonal, self.off_diagonal], [-1, 0, 1])
 
+    @cache
+    def eigendecomp(self):
+        return eigh_tridiagonal(self.main_diagonal, self.off_diagonal)
+
 
 class LanczosDecomposition:
     def __init__(self, Q, T, norm_start_vector):
@@ -27,11 +33,12 @@ class LanczosDecomposition:
         Q, (alpha, beta) = lanczos(A, q_1, k=k, reorthogonalize=reorthogonalize, beta_tol=beta_tol)
         return cls(Q, SymmetricTridiagonal(alpha, beta), norm(q_1))
 
+    @cache
     def prefix(self, k):
         return LanczosDecomposition(self.Q[:, :k], self.T.prefix(k), self.norm_start_vector)
 
     def apply_function_to_start(self, f):
-        T_lambda, T_V = eigh_tridiagonal(self.T.main_diagonal, self.T.off_diagonal)
+        T_lambda, T_V = self.T.eigendecomp()
         return self.norm_start_vector * (self.Q @ (T_V @ (f(T_lambda) * T_V[0, :])))
 
     def ritz_values(self):

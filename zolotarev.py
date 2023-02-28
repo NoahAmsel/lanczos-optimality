@@ -73,3 +73,14 @@ def tylers_sqrt(q, a, b):
     def approx_sqrt(x): return 1./f(x)
     approx_sqrt.degree = (f_denom, f_num)
     return approx_sqrt
+
+
+def my_poly(x):
+    return 1 + x * (1/2 + x * (1/9 + x * (1/72 + x * (1/1008 + x / 30240))))
+
+
+def exp_pade0_55(x):
+    return my_poly(x) / my_poly(-x)
+
+
+exp_pade0_55.degree = (5, 5)
