@@ -8,14 +8,6 @@ import matrix_functions as mf
 
 from tqdm import tqdm
 
-# def lanczos_error_curve_multifunction(name2function, A_decomp, ground_truth, ks, norm_matrix_sqrt=None):
-#     lanczos_errors = pd.DataFrame(index=ks, columns=list(name2function), dtype=np.dtype('O'))
-#     for k in ks:
-#         lanczos_estimate = A_decomp.prefix(k).apply_function_to_start(f)
-#         error = lanczos_estimate - ground_truth
-#         lanczos_errors.loc[k] = mf.norm(error) if norm_matrix_sqrt is None else mf.norm(norm_matrix_sqrt @ error)
-#     return lanczos_errors    
-
 
 def lanczos_error_curve(f, A_decomp, ground_truth, ks, norm_matrix_sqrt=None):
     lanczos_errors = pd.Series(index=ks, dtype=np.dtype('O'))
@@ -86,8 +78,10 @@ def fa_performance(f, a_diag, b, ks, relative_error=True,
                    uniform_bound_regression=False,
                    lanczos=True,
                    lanczos_Anorm=False,
+                   lanczos_alt_norms=None,
                    krylov_optimal=True,
                    krylov_optimal_Anorm=False,
+                   krylov_optimal_alt_norms=None,
                    our_bound=True):
     # TODO: add a "tqdm" option that, instead of passing ks below, passes tqdm(ks)
 
@@ -103,15 +97,25 @@ def fa_performance(f, a_diag, b, ks, relative_error=True,
     lambda_max = a_diag.max()
     dim = len(a_diag)
 
+    if our_bound:
+        assert hasattr(f, "degree")
+        cols["Our Bound"] = our_bound_curve(A_decomp.Q, ground_truth, ks, f.degree[1], lambda_max / lambda_min)
+
     if uniform_bound_interpolation:
         # ... Chebyshev interpolation
-        unif_label = r"$2||b|| \cdot \min_{\mathrm{deg}(p)<k} ||p - f||_{[\lambda_{\min}, \lambda_{\max}]}$"
+        unif_label = r"$2||b||_2 \cdot \min_{\mathrm{deg}(p)<k} \|p(x) - f(x)\|_{\infty, [\lambda_{\min}, \lambda_{\max}]}$"
         cols[unif_label] = 2 * mf.norm(b) * chebyshev_interpolant_linf_error_curve(
             lambda_min, lambda_max, f, ks, 10 * dim)
+        # the error of the best approximation is monotonically decreasing with degree
+        # but since this is only an approximation, we might have to enforce this property
+        cols[unif_label] = np.minimum.accumulate(cols[unif_label])
     if uniform_bound_regression:
         # Chebyshev regression
         cols[r"Chebyshev regression $\cdot 2||b||$"] = 2 * mf.norm(b) * chebyshev_regression_linf_error_curve(
             lambda_min, lambda_max, f, ks, 10 * dim)
+        # the error of the best approximation is monotonically decreasing with degree
+        # but since this is only an approximation, we might have to enforce this property
+        cols[r"Chebyshev regression $\cdot 2||b||$"] = np.minimum.accumulate(cols[r"Chebyshev regression $\cdot 2||b||$"])
 
     if lanczos:
         # Lanczos-FA
@@ -119,6 +123,9 @@ def fa_performance(f, a_diag, b, ks, relative_error=True,
     if lanczos_Anorm:
         # Lanczos-FA with error measured in A norm
         cols[r"$||\mathrm{lan}_k - f(A)b||_A$"] = lanczos_error_curve(f, A_decomp, ground_truth, ks, sqrtA)
+    if lanczos_alt_norms is not None:
+        for norm_name, norm_matrix_sqrt in lanczos_alt_norms.items():
+            cols[rf"$||\mathrm{{lan}}_k - f(A)b||_{norm_name}$"] = lanczos_error_curve(f, A_decomp, ground_truth, ks, norm_matrix_sqrt)
 
     # Optimal approximation to ground truth in Krylov subspace...
     if krylov_optimal:
@@ -127,10 +134,9 @@ def fa_performance(f, a_diag, b, ks, relative_error=True,
     if krylov_optimal_Anorm:
         # ...with respect to A norm
         cols[r"$||\mathrm{opt}_k(A) - f(A)b||_A$"] = krylov_optimal_error_curve(A_decomp.Q, ground_truth, ks, sqrtA)
-
-    if our_bound:
-        assert hasattr(f, "degree")
-        cols["Our Bound"] = our_bound_curve(A_decomp.Q, ground_truth, ks, f.degree[1], lambda_max / lambda_min)
+    if krylov_optimal_alt_norms is not None:
+        for norm_name, norm_matrix_sqrt in krylov_optimal_alt_norms.items():
+            cols[rf"$||\mathrm{{opt}}_k(A) - f(A)b||_{norm_name}$"] = krylov_optimal_error_curve(A_decomp.Q, ground_truth, ks, norm_matrix_sqrt)
 
     results = pd.concat(cols, axis=1)
     # notice that it's relative to the *Euclidean* norm of the ground truth
@@ -143,30 +149,37 @@ def fa_performance(f, a_diag, b, ks, relative_error=True,
     return results
 
 
-def fun_vs_rationals(f, a_diag, b, ks, degrees, relative_error=True):
+def fun_vs_rationals(f, a_diag, b, ks, degrees, approximator=None, fname="f", relative_error=True):
+    if approximator is None:
+        def approximator(degree):
+            return baryrat.brasil(f, (a_diag.min(), a_diag.max()), degree, tol=0.0001, info=False)
+
     ground_truth = mf.diagonal_fa(f, a_diag, b)
     A = mf.DiagonalMatrix(a_diag)
     A_decomp = mf.LanczosDecomposition.fit(A, b, max(ks), reorthogonalize=True)
 
     cols = dict()
-    deg2unif_errors = dict()
+    # deg2unif_errors = dict()
 
-    cols["f"] = lanczos_error_curve(f, A_decomp, ground_truth, ks)
+    cols[fname] = lanczos_error_curve(f, A_decomp, ground_truth, ks)
+    # cols["Krylov optimal"] = krylov_optimal_error_curve(A_decomp.Q, ground_truth, ks)
 
     for degree in tqdm(degrees):
-        approximant, info = baryrat.brasil(f, (a_diag.min(), a_diag.max()), degree, tol=0.0001, info=True)
-        assert info.converged
-        cols[str(degree)] = lanczos_error_curve(approximant, A_decomp, ground_truth, ks)
-        deg2unif_errors[degree] = info.error
+        approximant = approximator(degree)
+        # approximant, info = baryrat.brasil(f, (a_diag.min(), a_diag.max()), degree, tol=0.0001, info=True)
+        # assert info.converged
+        cols[f"deg={degree}"] = lanczos_error_curve(approximant, A_decomp, ground_truth, ks)
+        # deg2unif_errors[degree] = info.error
 
     results = pd.concat(cols, axis=1)
-    uniform_errors = pd.Series(deg2unif_errors)
+    # uniform_errors = pd.Series(deg2unif_errors)
     # notice that it's relative to the *Euclidean* norm of the ground truth
     if relative_error:
         results /= mf.norm(ground_truth)
-        uniform_errors /= mf.norm(ground_truth)
+        # uniform_errors /= mf.norm(ground_truth)
 
     assert (results != flamp.gmpy2.mpfr('nan')).all().all()
     assert (~pd.isna(results)).all().all()
 
-    return results, uniform_errors
+    # return results, uniform_errors
+    return results
