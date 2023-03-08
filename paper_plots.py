@@ -41,7 +41,7 @@ def plot_convergence_curves(results, error_label, k_label, title=None, dashes=Tr
 # superplot_counter = 0
 
 
-def convergence_superplot(a_diag, b, ks, functions_dict, relative_error, plot_our_bound=True, plot_optimality_ratios=True, differentiate_sizes=True):
+def convergence_superplot(a_diag, b, ks, functions_dict, relative_error, plot_our_bound=True, plot_optimality_ratios=True, differentiate_sizes=True, plot_unif=True):
     # global superplot_counter
     # superplot_counter += 1
     fig_scale = 1.5  # default. shouldn't matter when using svg
@@ -72,6 +72,7 @@ def convergence_superplot(a_diag, b, ks, functions_dict, relative_error, plot_ou
     for fun_ix, (fun_label, fun) in enumerate(tqdm(functions_dict.items())):
         results = fa_performance(fun, a_diag[fun_ix], b, ks,
                                  relative_error=relative_error,
+                                 remez_uniform=plot_unif, uniform_bound_interpolation=False,
                                  our_bound=plot_our_bound)
         # results.to_csv(f"output/paper_data/superplot{superplot_counter}_{fun_label}.csv")
 
@@ -79,9 +80,13 @@ def convergence_superplot(a_diag, b, ks, functions_dict, relative_error, plot_ou
             krylov_optimal_label: "Krylov Optimal",
             lanczos_label: "Lanczos-FA",
             unif_label: "Uniform Bound",
+            "Remez Uniform": "Uniform Bound",
             our_label: "Our Bound"
             }, inplace=True)
         results = results[results.columns[::-1]]
+
+        if not plot_unif:
+            results.drop("Uniform Bound", axis=1, inplace=True)
 
         plot_convergence_curves(
             results,
@@ -152,7 +157,7 @@ if __name__ == "__main__":
     b = flamp.ones(dim)
 
     # ks = list(range(1, dim//10)) + list(range(dim//10, dim-5, 5)) + list(range(dim-5, dim+1))
-    ks = list(range(1, 51))
+    ks = list(range(1, 61))
     # ks = list(range(1, 51, 10))
     # print("bAAAD FIX Me")
 
@@ -161,7 +166,7 @@ if __name__ == "__main__":
     # Convergence of Lanczos on general functions
     general_performanace_funs = {
         r"$\mathbf A^{-2}\mathbf b$": inverse_monomial(2),
-        r"$e^{\mathbf A}b$": flamp.exp,
+        r"$\exp(\mathbf A)b$": flamp.exp,
         r"$\sqrt{\mathbf A} \mathbf b$": flamp.sqrt
     }
     general_performanace_fig = convergence_superplot([a_diag_unif, a_diag_geom, a_diag_two_cluster], b, ks, general_performanace_funs, plot_our_bound=False, relative_error=True)
@@ -170,7 +175,7 @@ if __name__ == "__main__":
     # Our bound vs convergence curve for rational functions
     our_bound_funs = {
         r"$\mathbf A^{-2}\mathbf b$": inverse_monomial(2),
-        r"$r(\mathbf A)\mathbf b \approx e^{\mathbf A} \mathbf b$ (deg=5)": exp_pade0_55,
+        r"$r(\mathbf A)\mathbf b \approx \exp(\mathbf A) \mathbf b$ (deg=5)": exp_pade0_55,
         r"$r(\mathbf A)\mathbf b \approx \sqrt{\mathbf A}\mathbf b$ (deg=13)": tylers_sqrt(13, float(a_diag_geom.min()), float(a_diag_geom.max())),
     }
     our_bound_fig = convergence_superplot([a_diag_unif, a_diag_geom, a_diag_two_cluster], b, ks, our_bound_funs, plot_our_bound=True, relative_error=True, plot_optimality_ratios=False)
@@ -204,7 +209,7 @@ if __name__ == "__main__":
         [np.hstack([-a_diag_geom, a_diag_geom])] * 3,
         np.hstack([b, b]), ks,
         {r"$\mathrm{sign}(\mathbf A)\mathbf b$": np.sign, r"$(5 - \mathbf A^2)^{-1} \mathbf b$": one_over_1minus_x_squared, r"$(5 + \mathbf A^2)^{-1} \mathbf b$": one_over_1plus_x_squared},
-        plot_our_bound=False, relative_error=True, differentiate_sizes=False)
+        plot_our_bound=False, relative_error=True, differentiate_sizes=False, plot_unif=False)
     indefinite_fig.savefig('output/paper_plots/indefinite.svg')
 
     sns.set_palette(sns.color_palette("rocket", 5))

@@ -5,6 +5,7 @@ import pandas as pd
 import baryrat
 
 import matrix_functions as mf
+from remez import remez_flamp
 
 from tqdm import tqdm
 
@@ -62,6 +63,18 @@ def chebyshev_regression_linf_error_curve(interval_lower, interval_upper, f, ks,
     return cheb_regression_errors
 
 
+def remez_error_curve(interval_lower, interval_upper, f, ks, max_iter=100, n_grid=2000, tol=1e-10):
+    remez_errors = pd.Series(flamp.gmpy2.mpfr('inf') * len(ks), index=ks, dtype=np.dtype('O'))
+    for k in ks:
+        try:
+            _, error_upper_bound, _ = remez_flamp(f, k, domain=[interval_lower, interval_upper], max_iter=max_iter, n_grid=n_grid, tol=tol)
+            remez_errors.loc[k] = error_upper_bound
+        except Exception:
+            # Yeah Remez gets stuck sometimes
+            pass
+    return remez_errors
+
+
 def our_bound_curve(krylov_basis, ground_truth, ks, denom_degree, kappa):
     our_bound = pd.Series(data=np.inf, index=ks, dtype=np.dtype('O'))
     # Bound doesn't exist unless k - denom_degree + 1 > 0
@@ -76,6 +89,7 @@ def our_bound_curve(krylov_basis, ground_truth, ks, denom_degree, kappa):
 def fa_performance(f, a_diag, b, ks, relative_error=True,
                    uniform_bound_interpolation=True,
                    uniform_bound_regression=False,
+                   remez_uniform=False,
                    lanczos=True,
                    lanczos_Anorm=False,
                    lanczos_alt_norms=None,
@@ -116,6 +130,10 @@ def fa_performance(f, a_diag, b, ks, relative_error=True,
         # the error of the best approximation is monotonically decreasing with degree
         # but since this is only an approximation, we might have to enforce this property
         cols[r"Chebyshev regression $\cdot 2||b||$"] = np.minimum.accumulate(cols[r"Chebyshev regression $\cdot 2||b||$"])
+
+    if remez_uniform:
+        cols["Remez Uniform"] = 2 * mf.norm(b) * remez_error_curve(lambda_min, lambda_max, f, ks, max_iter=100, n_grid=2000, tol=1e-10)
+        cols["Remez Uniform"] = np.minimum.accumulate(cols["Remez Uniform"])
 
     if lanczos:
         # Lanczos-FA
