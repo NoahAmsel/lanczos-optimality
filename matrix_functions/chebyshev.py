@@ -34,8 +34,8 @@ def cheb_interpolation(degree, f, a, b, dtype=float):
         z = np.atleast_1d(z)
         coeffs = np.equal.outer(z, x).astype(dtype)
         z_isnt_interpolation_point = ~coeffs.any(axis=1).astype(bool)
-        coeffs[z_isnt_interpolation_point, :] = w / \
-            (np.subtract.outer(z[z_isnt_interpolation_point], x))
+        coeffs[z_isnt_interpolation_point, :] = w / (
+            np.subtract.outer(z[z_isnt_interpolation_point], x))
         return np.squeeze((coeffs @ y) / coeffs.sum(axis=1))
 
     return interpolant
@@ -47,10 +47,23 @@ def cheb_vandermonde(x, max_degree):
     rescaled_x = 2 * (x - (a+b)/2) / (b-a)
     k = max_degree + 1
     M = np.empty((len(rescaled_x), k), dtype=x.dtype)
-    M[:, 0] = 1.
+    if x.dtype == np.dtype('O'):
+        M[:, 0] = flamp.gmpy2.mpfr(1.)
+    else:
+        M[:, 0] = 1.
     if k == 1:
         return M
     M[:, 1] = rescaled_x
     for i in range(2, k):
         M[:, i] = 2 * rescaled_x * M[:, i-1] - M[:, i-2]
     return M
+
+
+def cheb_regression_errors(degree, function_vals, points):
+    assert function_vals.shape == points.shape
+    CV = cheb_vandermonde(points, degree)
+    if points.dtype == np.dtype('O'):
+        my_coeffs = flamp.qr_solve(CV, function_vals)
+    else:
+        my_coeffs, _, _, _ = np.linalg.lstsq(CV, function_vals, rcond=None)
+    return function_vals - CV @ my_coeffs

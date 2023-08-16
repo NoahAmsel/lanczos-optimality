@@ -48,3 +48,11 @@ def test_cheb_vandermonde():
 
     # The values at each node are the same even if the nodes are linearly transformed
     assert np.allclose(mf.cheb_vandermonde(2 * x + 10, 4), reference)
+
+
+def test_cheb_regression_errors():
+    points = mf.utils.linspace(3, 5, num=3)
+    def f(x): return (x - 4)**2
+    assert np.allclose(mf.chebyshev.cheb_regression_errors(0, f(points), points), f(points) - (2/3))
+    assert np.allclose(mf.chebyshev.cheb_regression_errors(1, f(points), points), f(points) - (2/3))
+    assert np.allclose(mf.chebyshev.cheb_regression_errors(2, f(points), points), 0)

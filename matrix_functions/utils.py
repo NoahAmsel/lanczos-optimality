@@ -27,6 +27,13 @@ def log(x):
         return np.log(x)
 
 
+def arange(n, dtype=None):
+    if dtype == np.dtype('O'):
+        return flamp.to_mp(np.arange(n))
+    else:
+        return np.arange(n)
+
+
 def linspace(start, stop, num=50, endpoint=True, dtype=None):
     if (dtype == np.dtype('O')) or (
         (dtype is None) and (
