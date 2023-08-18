@@ -2,7 +2,6 @@ import warnings
 
 import flamp
 import numpy as np
-from scipy.signal import find_peaks
 
 from .chebyshev import cheb_nodes, cheb_vandermonde, cheb_regression_errors
 from .utils import arange
@@ -47,12 +46,13 @@ def discrete_remez_error(degree, f_points, points, max_iter=100, tol=1e-10):
 
     # initial guess: chebyshev l2 regression
     err_fun = cheb_regression_errors(degree, f_points, points)
-    extreme_ixs = extrema_indices(err_fun, degree + 2)
 
     # TODO: I added this block to handle the special case where the function is interpolated perfectly by Chebyshev
     # regression but I'm not sure it's the right thing
-    if (len(extreme_ixs) < degree + 2) and (np.max(np.abs(err_fun)) < tol):
+    if np.max(np.abs(err_fun)) < tol:
         return np.max(np.abs(err_fun))
+
+    extreme_ixs = extrema_indices(err_fun, degree + 2)
 
     for _ in range(max_iter):
         V = np.hstack((
@@ -79,6 +79,7 @@ def discrete_remez_error(degree, f_points, points, max_iter=100, tol=1e-10):
         extreme_ixs = extrema_indices(err_fun, degree + 2)
 
     warnings.warn(f"Remez fail to converge after {max_iter} iterations.\nE={E}\nF={F}")
+    print(f"fail deg={degree}")
     return F
 
 

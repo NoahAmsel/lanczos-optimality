@@ -5,7 +5,6 @@ import pandas as pd
 import baryrat
 
 import matrix_functions as mf
-from remez import remez_flamp
 
 from tqdm import tqdm
 
@@ -63,15 +62,21 @@ def chebyshev_regression_linf_error_curve(interval_lower, interval_upper, f, ks,
     return cheb_regression_errors
 
 
-def remez_error_curve(interval_lower, interval_upper, f, ks, max_iter=100, n_grid=2000, tol=1e-10):
+def remez_error_curve(interval_lower, interval_upper, f, ks, max_iter, n_grid, tol):
     remez_errors = pd.Series(flamp.gmpy2.mpfr('inf') * len(ks), index=ks, dtype=np.dtype('O'))
     for k in ks:
-        try:
-            _, error_upper_bound, _ = remez_flamp(f, k, domain=[interval_lower, interval_upper], max_iter=max_iter, n_grid=n_grid, tol=tol)
-            remez_errors.loc[k] = error_upper_bound
-        except Exception:
-            # Yeah Remez gets stuck sometimes
-            pass
+        # Degree of polynomial must be strictly less than dimension of Krylov subspace used in Lanczos (so k - 1)
+        remez_errors.loc[k] = mf.remez_error(
+            degree=k-1, f=f, domain=[interval_lower, interval_upper],
+            max_iter=max_iter, n_grid=n_grid, tol=tol
+        )
+    return remez_errors
+
+
+def spectrum_optimal_curve(spectrum, f, ks, max_iter, tol):
+    remez_errors = pd.Series(flamp.gmpy2.mpfr('inf') * len(ks), index=ks, dtype=np.dtype('O'))
+    for k in ks:
+        remez_errors.loc[k] = mf.discrete_remez_error(degree=k-1, f_points=f(spectrum), points=spectrum, max_iter=max_iter, tol=tol)
     return remez_errors
 
 
@@ -87,9 +92,10 @@ def our_bound_curve(krylov_basis, ground_truth, ks, denom_degree, kappa):
 
 
 def fa_performance(f, a_diag, b, ks, relative_error=True,
-                   uniform_bound_interpolation=True,
+                   uniform_bound_interpolation=False,
                    uniform_bound_regression=False,
                    remez_uniform=False,
+                   spectrum_optimal=False,
                    lanczos=True,
                    lanczos_Anorm=False,
                    lanczos_alt_norms=None,
@@ -115,14 +121,18 @@ def fa_performance(f, a_diag, b, ks, relative_error=True,
         assert hasattr(f, "degree")
         cols["Our Bound"] = our_bound_curve(A_decomp.Q, ground_truth, ks, f.degree[1], lambda_max / lambda_min)
 
+    if remez_uniform:
+        unif_label = r"$2||b||_2 \cdot \min_{\mathrm{deg}(p)<k} \|p(x) - f(x)\|_{\infty, [\lambda_{\min}, \lambda_{\max}]}$"
+        cols[unif_label] = 2 * mf.norm(b) * remez_error_curve(lambda_min, lambda_max, f, ks, max_iter=100, n_grid=2000, tol=1e-16)
+        cols[unif_label] = np.minimum.accumulate(cols[unif_label])
+
     if uniform_bound_interpolation:
         # ... Chebyshev interpolation
-        unif_label = r"$2||b||_2 \cdot \min_{\mathrm{deg}(p)<k} \|p(x) - f(x)\|_{\infty, [\lambda_{\min}, \lambda_{\max}]}$"
-        cols[unif_label] = 2 * mf.norm(b) * chebyshev_interpolant_linf_error_curve(
+        cols[r"Chebyshev interpolation $\cdot 2||b||$"] = 2 * mf.norm(b) * chebyshev_interpolant_linf_error_curve(
             lambda_min, lambda_max, f, ks, 10 * dim)
         # the error of the best approximation is monotonically decreasing with degree
         # but since this is only an approximation, we might have to enforce this property
-        cols[unif_label] = np.minimum.accumulate(cols[unif_label])
+        cols[r"Chebyshev interpolation $\cdot 2||b||$"] = np.minimum.accumulate(cols[r"Chebyshev interpolation $\cdot 2||b||$"])
     if uniform_bound_regression:
         # Chebyshev regression
         cols[r"Chebyshev regression $\cdot 2||b||$"] = 2 * mf.norm(b) * chebyshev_regression_linf_error_curve(
@@ -131,9 +141,10 @@ def fa_performance(f, a_diag, b, ks, relative_error=True,
         # but since this is only an approximation, we might have to enforce this property
         cols[r"Chebyshev regression $\cdot 2||b||$"] = np.minimum.accumulate(cols[r"Chebyshev regression $\cdot 2||b||$"])
 
-    if remez_uniform:
-        cols["Remez Uniform"] = 2 * mf.norm(b) * remez_error_curve(lambda_min, lambda_max, f, ks, max_iter=100, n_grid=2000, tol=1e-10)
-        cols["Remez Uniform"] = np.minimum.accumulate(cols["Remez Uniform"])
+    if spectrum_optimal:
+        spec_opt_label = r"$||b||_2 \cdot \min_{\mathrm{deg}(p)<k} \max_{x \in \Lambda} \|p(x) - f(x)\|$"
+        cols[spec_opt_label] = mf.norm(b) * spectrum_optimal_curve(a_diag, f, ks, max_iter=100, tol=1e-16)
+        cols[spec_opt_label] = np.minimum.accumulate(cols[spec_opt_label])
 
     if lanczos:
         # Lanczos-FA

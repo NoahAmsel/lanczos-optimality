@@ -41,7 +41,7 @@ def plot_convergence_curves(results, error_label, k_label, title=None, dashes=Tr
 # superplot_counter = 0
 
 
-def convergence_superplot(a_diag, b, ks, functions_dict, relative_error, plot_our_bound=True, plot_optimality_ratios=True, differentiate_sizes=True, plot_unif=True):
+def convergence_superplot(a_diag, b, ks, functions_dict, relative_error, plot_our_bound=True, plot_optimality_ratios=True, differentiate_sizes=True, plot_unif=True, plot_spectrum_optimal=False):
     # global superplot_counter
     # superplot_counter += 1
     fig_scale = 1.5  # default. shouldn't matter when using svg
@@ -67,12 +67,15 @@ def convergence_superplot(a_diag, b, ks, functions_dict, relative_error, plot_ou
     krylov_optimal_label = r"$||\mathrm{opt}_k(I) - f(A)b||_2$"
     lanczos_label = r"$||\mathrm{lan}_k - f(A)b||_2$"
     unif_label = r"$2||b||_2 \cdot \min_{\mathrm{deg}(p)<k} \|p(x) - f(x)\|_{\infty, [\lambda_{\min}, \lambda_{\max}]}$"
+    cheb_unif_label = r"Chebyshev regression $\cdot 2||b||$"
+    spec_opt_label = r"$||b||_2 \cdot \min_{\mathrm{deg}(p)<k} \max_{x \in \Lambda} \|p(x) - f(x)\|$"
     our_label = "Our Bound"
 
     for fun_ix, (fun_label, fun) in enumerate(tqdm(functions_dict.items())):
         results = fa_performance(fun, a_diag[fun_ix], b, ks,
                                  relative_error=relative_error,
-                                 remez_uniform=plot_unif, uniform_bound_interpolation=False,
+                                 remez_uniform=plot_unif, uniform_bound_regression=plot_unif,
+                                 spectrum_optimal=plot_spectrum_optimal,
                                  our_bound=plot_our_bound)
         # results.to_csv(f"output/paper_data/superplot{superplot_counter}_{fun_label}.csv")
 
@@ -80,12 +83,12 @@ def convergence_superplot(a_diag, b, ks, functions_dict, relative_error, plot_ou
             krylov_optimal_label: "Krylov Optimal",
             lanczos_label: "Lanczos-FA",
             unif_label: "Uniform Bound",
-            "Remez Uniform": "Uniform Bound",
+            spec_opt_label: "Spectrum Optimal",
             our_label: "Our Bound"
             }, inplace=True)
         results = results[results.columns[::-1]]
 
-        if not plot_unif:
+        if (not plot_unif) and ("Uniform Bound" in list(results)):
             results.drop("Uniform Bound", axis=1, inplace=True)
 
         plot_convergence_curves(
@@ -93,8 +96,15 @@ def convergence_superplot(a_diag, b, ks, functions_dict, relative_error, plot_ou
             error_label=error_label if (fun_ix == 0) else None,
             k_label=None,
             title=fun_label,
-            dashes={"Lanczos-FA": (1, 1), "Krylov Optimal": (1, 0), "Uniform Bound": (3, 1), "Our Bound": (3, 1, 1, 1)},
-            sizes={"Lanczos-FA": 3, "Krylov Optimal": 1, "Uniform Bound": 1.5, "Our Bound": 1.5} if differentiate_sizes else None,
+            dashes={
+                "Lanczos-FA": (1, 1),
+                "Krylov Optimal": (1, 0),
+                "Uniform Bound": (3, 1),
+                cheb_unif_label: (3, 1),
+                "Spectrum Optimal": (2, 1, 1, 1, 1, 1),
+                "Our Bound": (3, 1, 1, 1),
+            },
+            sizes={"Lanczos-FA": 3, "Krylov Optimal": 1, "Uniform Bound": 1.5, cheb_unif_label: 1.5, "Spectrum Optimal": 1.5, "Our Bound": 1.5} if differentiate_sizes else None,
             ax=axs[0, fun_ix]
         )
 
@@ -163,15 +173,17 @@ if __name__ == "__main__":
 
     zolotarev_13 = tylers_sqrt(13, float(a_diag_geom.min()), float(a_diag_geom.max()))
 
+    print("general performance")
     # Convergence of Lanczos on general functions
     general_performanace_funs = {
         r"$\mathbf A^{-2}\mathbf b$": inverse_monomial(2),
         r"$\exp(\mathbf A)b$": flamp.exp,
         r"$\sqrt{\mathbf A} \mathbf b$": flamp.sqrt
     }
-    general_performanace_fig = convergence_superplot([a_diag_unif, a_diag_geom, a_diag_two_cluster], b, ks, general_performanace_funs, plot_our_bound=False, relative_error=True)
+    general_performanace_fig = convergence_superplot([a_diag_unif, a_diag_geom, a_diag_two_cluster], b, ks, general_performanace_funs, plot_our_bound=False, plot_spectrum_optimal=True, relative_error=True)
     general_performanace_fig.savefig('output/paper_plots/general_performance.svg')
 
+    print("our bound")
     # Our bound vs convergence curve for rational functions
     our_bound_funs = {
         r"$\mathbf A^{-2}\mathbf b$": inverse_monomial(2),
@@ -181,6 +193,7 @@ if __name__ == "__main__":
     our_bound_fig = convergence_superplot([a_diag_unif, a_diag_geom, a_diag_two_cluster], b, ks, our_bound_funs, plot_our_bound=True, relative_error=True, plot_optimality_ratios=False)
     our_bound_fig.savefig('output/paper_plots/our_bound.svg')
 
+    print("sqrt vs rat")
     sns.set_palette(sns.color_palette("rocket", 5))
     # Triangle inequality
     a_diag_10_outliers = mf.two_cluster_spectrum(dim, kappa, low_cluster_size=10, lambda_1=lambda_min)
@@ -205,6 +218,7 @@ if __name__ == "__main__":
         return 1/(5 - x**2)
     one_over_1minus_x_squared.degree = (0, 2)
 
+    print("indefinite")
     indefinite_fig = convergence_superplot(
         [np.hstack([-a_diag_geom, a_diag_geom])] * 3,
         np.hstack([b, b]), ks,
@@ -217,6 +231,7 @@ if __name__ == "__main__":
     df_lower = pd.read_csv("output/optim_grid_search/2023-03-02_08:04.tsv", sep='\t')
     df_lower["log_kappa"] = np.log10(df_lower["kappa"])
 
+    print("opt lower bound")
     fig_lower_bound, axs_lower_bound = plt.subplots(1, 2, figsize=(8, 4))
     p1 = sns.scatterplot(x='q', y='ratio_max', hue='log_kappa', data=df_lower, legend=False, palette=sns.color_palette("rocket", 5), ax=axs_lower_bound[0], s=60)
     p2 = sns.lineplot(x=df_lower.q.unique(), y=np.sqrt(df_lower.q.unique() * df_lower.kappa.max()), ax=axs_lower_bound[0], lw=1.5, ls=':')
@@ -235,6 +250,7 @@ if __name__ == "__main__":
     df_or = pd.read_csv("output/optim_grid_search/2023-03-03_03:08.tsv", sep='\t')
     df_or["log_kappa"] = np.log10(df_or["kappa"])
 
+    print("lanczos or lower")
     fig_lower_bound, axs_lower_bound = plt.subplots(1, 2, figsize=(8, 4))
     p1 = sns.scatterplot(x='q', y='ratio_max', hue='log_kappa', data=df_or, legend=False, palette=sns.color_palette("rocket", 5), ax=axs_lower_bound[0], s=60)
     p2 = sns.lineplot(x=np.geomspace(df_or.q.min(), df_or.q.max()), y=(df_or.kappa.max() ** (np.geomspace(df_or.q.min(), df_or.q.max()) / 2)), ax=axs_lower_bound[0], lw=1.5, ls=':')
