@@ -8,6 +8,10 @@ from .utils import arange
 
 
 def extrema_indices(x, num):
+    # Select the next set of oscillation points in accordance with Remez's second algorithm as described in
+    # "Barycentric-Remez algorithms for best polynomial approximation in the chebfun system"
+    # section 2.2. https://www.chebfun.org/publications/remez.pdf
+
     # The indices must be returned in sorted order!
     # Divide x into intervals where the sign is all the same
     # Hack! deal with the places where x = 0. Perturb these so they fall strictly in one interval or the other
@@ -24,14 +28,14 @@ def extrema_indices(x, num):
     intervals = zip(start_ixs, end_ixs)
     # find the max within each each interval
     max_indices = [start_ix + np.argmax(np.abs(x[start_ix:end_ix])) for start_ix, end_ix in intervals]
-    # there may be more extreme points than we need
-    # keep the biggest ones, preserving alternating signs
-    while len(max_indices) > num:
-        if x[max_indices[0]] > x[max_indices[-1]]:
-            max_indices.pop()
-        else:
-            max_indices.pop(0)
-    assert len(max_indices) == num
+    # There may be more extreme points than we need.
+    # Keep the biggest one, preserving alternating signs
+    # `global_max_index` is an index into the array `max_indices`
+    global_max_index = np.argmax(np.abs(x[max_indices]))
+    right_limit = min(global_max_index + num, len(max_indices))
+    left_limit = max(0, right_limit - num)
+    max_indices = max_indices[left_limit:right_limit]
+    assert len(max_indices) == num, f"{len(max_indices)}\t{num}"
     return max_indices
 
 

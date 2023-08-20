@@ -23,7 +23,10 @@ def test_oscillations():
     remez_error_discrete = mf.discrete_remez_error(0, flamp.cos(points), points, max_iter=10, tol=1e-16)
     assert np.abs(remez_error_discrete - 1) < flamp.gmpy2.mpfr('1e-17')
 
-    # what if 
+    points = mf.utils.linspace(-2*np.pi, 2*np.pi, 101, dtype=np.dtype('O'))
+    remez_error_discrete = mf.discrete_remez_error(0, flamp.cos(points), points, max_iter=10, tol=1e-16)
+    assert np.abs(remez_error_discrete - 1) < flamp.gmpy2.mpfr('1e-17')
+
     points = flamp.to_mp([-2, -1, 0, 1, 2])
     vals = flamp.to_mp([-1, 1, 0, 1, -1])
     remez_error_discrete = mf.discrete_remez_error(0, vals, points, max_iter=10, tol=1e-16)
@@ -34,17 +37,9 @@ def test_oscillations():
     remez_error_discrete = mf.discrete_remez_error(0, vals, points, max_iter=10, tol=1e-16)
     assert np.abs(remez_error_discrete - 1) < flamp.gmpy2.mpfr('1e-17')
 
+
 def test_perfect():
     points = flamp.to_mp([-1, 0, 1])
     vals = flamp.to_mp([0, 0, 0])
     remez_error = mf.discrete_remez_error(0, vals, points, max_iter=10, tol=1e-16)
     assert np.abs(remez_error) < flamp.gmpy2.mpfr('1e-17')
-
-
-
-# TODO add test case where, with initial (degree 0) guess, there are 4 local extrema.
-# like f(x) = (x+1)(x)(x-1) over [-2,2]
-# or sin(x)
-# also try a test case with this triangle wave and degree 0
-# np.array([0, 1, 0, 1, 0]) (((where the initial points are the first and last?)))
-# p. 301 of https://dl.acm.org/doi/pdf/10.1145/321281.321282
