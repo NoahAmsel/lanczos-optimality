@@ -1,3 +1,4 @@
+import baryrat
 import flamp
 from matplotlib import pyplot as plt
 import numpy as np
@@ -74,22 +75,23 @@ def convergence_superplot(a_diag, b, ks, functions_dict, relative_error, plot_ou
     for fun_ix, (fun_label, fun) in enumerate(tqdm(functions_dict.items())):
         results = fa_performance(fun, a_diag[fun_ix], b, ks,
                                  relative_error=relative_error,
-                                 remez_uniform=plot_unif, uniform_bound_regression=plot_unif,
+                                 remez_uniform=plot_unif, uniform_bound_regression=False,
                                  spectrum_optimal=plot_spectrum_optimal,
                                  our_bound=plot_our_bound)
         # results.to_csv(f"output/paper_data/superplot{superplot_counter}_{fun_label}.csv")
 
         results.rename(columns={
-            krylov_optimal_label: "Krylov Optimal",
+            krylov_optimal_label: "Instance Optimal",
             lanczos_label: "Lanczos-FA",
-            unif_label: "Uniform Bound",
+            unif_label: "FOV Optimal",
+            # cheb_unif_label: "FOV Optimal",
             spec_opt_label: "Spectrum Optimal",
             our_label: "Our Bound"
             }, inplace=True)
         results = results[results.columns[::-1]]
 
-        if (not plot_unif) and ("Uniform Bound" in list(results)):
-            results.drop("Uniform Bound", axis=1, inplace=True)
+        if (not plot_unif) and ("FOV Optimal" in list(results)):
+            results.drop("FOV Optimal", axis=1, inplace=True)
 
         plot_convergence_curves(
             results,
@@ -98,18 +100,18 @@ def convergence_superplot(a_diag, b, ks, functions_dict, relative_error, plot_ou
             title=fun_label,
             dashes={
                 "Lanczos-FA": (1, 1),
-                "Krylov Optimal": (1, 0),
-                "Uniform Bound": (3, 1),
+                "Instance Optimal": (1, 0),
+                "FOV Optimal": (3, 1),
                 cheb_unif_label: (3, 1),
                 "Spectrum Optimal": (2, 1, 1, 1, 1, 1),
                 "Our Bound": (3, 1, 1, 1),
             },
-            sizes={"Lanczos-FA": 3, "Krylov Optimal": 1, "Uniform Bound": 1.5, cheb_unif_label: 1.5, "Spectrum Optimal": 1.5, "Our Bound": 1.5} if differentiate_sizes else None,
+            sizes={"Lanczos-FA": 3, "Instance Optimal": 1, "FOV Optimal": 1.5, cheb_unif_label: 1.5, "Spectrum Optimal": 1.5, "Our Bound": 1.5} if differentiate_sizes else None,
             ax=axs[0, fun_ix]
         )
 
         if plot_optimality_ratios:
-            optimality_ratios = results["Lanczos-FA"] / results["Krylov Optimal"]
+            optimality_ratios = results["Lanczos-FA"] / results["Instance Optimal"]
             sns.lineplot(data=optimality_ratios, ax=axs[1, fun_ix], lw=1.5).set(
                 ylabel="Optimality Ratio" if (fun_ix == 0) else None
             )
@@ -163,8 +165,8 @@ if __name__ == "__main__":
     # a_diag_unif = mf.flipped_model_spectrum(dim, kappa, 1, lambda_min)
     a_diag_unif = flamp.linspace(lambda_min, kappa*lambda_min, dim)
     a_diag_geom = mf.geometric_spectrum(dim, kappa, rho=1e-5, lambda_1=lambda_min)
-    a_diag_two_cluster = mf.two_cluster_spectrum(dim, kappa, low_cluster_size=1, lambda_1=lambda_min)
-    b = flamp.ones(dim)
+    a_diag_two_cluster = mf.two_cluster_spectrum(dim, kappa, low_cluster_size=10, lambda_1=lambda_min)
+    b = flamp.to_mp(mf.geometric_spectrum(dim, 1e4, 1000))
 
     # ks = list(range(1, dim//10)) + list(range(dim//10, dim-5, 5)) + list(range(dim-5, dim+1))
     ks = list(range(1, 61))
@@ -172,23 +174,27 @@ if __name__ == "__main__":
     # print("bAAAD FIX Me")
 
     zolotarev_13 = tylers_sqrt(13, float(a_diag_geom.min()), float(a_diag_geom.max()))
-
     print("general performance")
+    sns.set_palette(np.array(sns.color_palette("rocket", 5))[[0, 3, 2, 1]])
     # Convergence of Lanczos on general functions
     general_performanace_funs = {
         r"$\mathbf A^{-2}\mathbf b$": inverse_monomial(2),
         r"$\exp(\mathbf A)b$": flamp.exp,
-        r"$\sqrt{\mathbf A} \mathbf b$": flamp.sqrt
+        r"$\log(\mathbf A) \mathbf b$": flamp.log
     }
     general_performanace_fig = convergence_superplot([a_diag_unif, a_diag_geom, a_diag_two_cluster], b, ks, general_performanace_funs, plot_our_bound=False, plot_spectrum_optimal=True, relative_error=True)
     general_performanace_fig.savefig('output/paper_plots/general_performance.svg')
 
     print("our bound")
+    sns.set_palette(np.array(sns.color_palette("rocket", 5))[[0, 3, 1, 4]])
+    # log_approx = baryrat.aaa(np.linspace(1, float(kappa), num=10_000), np.log, mmax=13, tol=1e-15)
+    log_approx, _ = baryrat.brasil(flamp.log, (flamp.gmpy2.mpfr(1), flamp.gmpy2.mpfr(kappa)), 10, info=True)
+    log_approx.degree = log_approx.degree()
     # Our bound vs convergence curve for rational functions
     our_bound_funs = {
         r"$\mathbf A^{-2}\mathbf b$": inverse_monomial(2),
         r"$r(\mathbf A)\mathbf b \approx \exp(\mathbf A) \mathbf b$ (deg=5)": exp_pade0_55,
-        r"$r(\mathbf A)\mathbf b \approx \sqrt{\mathbf A}\mathbf b$ (deg=13)": tylers_sqrt(13, float(a_diag_geom.min()), float(a_diag_geom.max())),
+        r"$r(\mathbf A)\mathbf b \approx \log(\mathbf A)\mathbf b$ (deg=10)": log_approx,
     }
     our_bound_fig = convergence_superplot([a_diag_unif, a_diag_geom, a_diag_two_cluster], b, ks, our_bound_funs, plot_our_bound=True, relative_error=True, plot_optimality_ratios=False)
     our_bound_fig.savefig('output/paper_plots/our_bound.svg')
@@ -198,7 +204,7 @@ if __name__ == "__main__":
     # Triangle inequality
     a_diag_10_outliers = mf.two_cluster_spectrum(dim, kappa, low_cluster_size=10, lambda_1=lambda_min)
     fig_triangle, ax_triangle = plt.subplots(figsize=(5.4, 3.75))
-    results = fun_vs_rationals(flamp.sqrt, a_diag_10_outliers, b, ks, [20, 15, 10, 5],
+    results = fun_vs_rationals(flamp.sqrt, a_diag_10_outliers, flamp.ones(dim), ks, [20, 15, 10, 5],
                                approximator=lambda degree: tylers_sqrt(degree, float(a_diag_geom.min()), float(a_diag_geom.max())),
                                fname="Square root",
                                relative_error=True)
@@ -221,7 +227,7 @@ if __name__ == "__main__":
     print("indefinite")
     indefinite_fig = convergence_superplot(
         [np.hstack([-a_diag_geom, a_diag_geom])] * 3,
-        np.hstack([b, b]), ks,
+        flamp.ones(2 * dim), ks,
         {r"$\mathrm{sign}(\mathbf A)\mathbf b$": np.sign, r"$(5 - \mathbf A^2)^{-1} \mathbf b$": one_over_1minus_x_squared, r"$(5 + \mathbf A^2)^{-1} \mathbf b$": one_over_1plus_x_squared},
         plot_our_bound=False, relative_error=True, differentiate_sizes=False, plot_unif=False)
     indefinite_fig.savefig('output/paper_plots/indefinite.svg')

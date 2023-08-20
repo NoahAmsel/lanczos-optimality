@@ -123,7 +123,7 @@ def fa_performance(f, a_diag, b, ks, relative_error=True,
 
     if remez_uniform:
         unif_label = r"$2||b||_2 \cdot \min_{\mathrm{deg}(p)<k} \|p(x) - f(x)\|_{\infty, [\lambda_{\min}, \lambda_{\max}]}$"
-        cols[unif_label] = 2 * mf.norm(b) * remez_error_curve(lambda_min, lambda_max, f, ks, max_iter=100, n_grid=2000, tol=1e-16)
+        cols[unif_label] = 2 * mf.norm(b) * remez_error_curve(lambda_min, lambda_max, f, ks, max_iter=200, n_grid=2000, tol=1e-14)
         cols[unif_label] = np.minimum.accumulate(cols[unif_label])
 
     if uniform_bound_interpolation:
