@@ -6,11 +6,14 @@ import matrix_functions as mf
 
 
 class DiagonalFAProblem:
-    def __init__(self, f, spectrum, b):
+    def __init__(self, f, spectrum, b, cache_k=None):
         self.f = f
         self.spectrum = spectrum
         self.b = b
         self.cached_decomp = None
+        if cache_k is not None:
+            # Future calls to lanczos_decomp with k <= cache_k will be fast
+            self.lanczos_decomp(cache_k)
 
     def ground_truth(self):
         return mf.diagonal_fa(self.f, self.spectrum, self.b)
@@ -64,7 +67,7 @@ class DiagonalFAProblem:
         )
 
     def pseudo_spectrum_optimal_error(self, k, max_iter, tol):
-        augmented_spectrum = np.concat((flamp.gmpy2.mpfr(0), self.spectrum))
+        augmented_spectrum = np.hstack((flamp.gmpy2.mpfr(0), self.spectrum))
         # Degree of polynomial must be strictly less than dimension of Krylov subspace used in Lanczos (so k - 1)
         return mf.norm(self.b) * mf.discrete_remez_error(
             degree=k-1, f_points=self.f(augmented_spectrum),
