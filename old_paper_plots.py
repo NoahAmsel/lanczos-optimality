@@ -166,7 +166,6 @@ if __name__ == "__main__":
     a_diag_unif = flamp.linspace(lambda_min, kappa*lambda_min, dim)
     a_diag_geom = mf.geometric_spectrum(dim, kappa, rho=1e-5, lambda_1=lambda_min)
     a_diag_two_cluster = mf.two_cluster_spectrum(dim, kappa, low_cluster_size=10, lambda_1=lambda_min)
-    b = flamp.to_mp(mf.geometric_spectrum(dim, 1e4, 1000))
 
     # ks = list(range(1, dim//10)) + list(range(dim//10, dim-5, 5)) + list(range(dim-5, dim+1))
     ks = list(range(1, 61))
@@ -175,18 +174,21 @@ if __name__ == "__main__":
 
     zolotarev_13 = tylers_sqrt(13, float(a_diag_geom.min()), float(a_diag_geom.max()))
     print("general performance")
-    sns.set_palette(np.array(sns.color_palette("rocket", 5))[[0, 3, 2, 1]])
+    tmp_palette = np.array(sns.color_palette("rocket", 5))[[0, 3, 2, 1]]
+    tmp_palette[2] = sns.color_palette("tab10")[-1]
+    sns.set_palette(tmp_palette)
     # Convergence of Lanczos on general functions
     general_performanace_funs = {
         r"$\mathbf A^{-2}\mathbf b$": inverse_monomial(2),
         r"$\exp(\mathbf A)b$": flamp.exp,
         r"$\log(\mathbf A) \mathbf b$": flamp.log
     }
-    general_performanace_fig = convergence_superplot([a_diag_unif, a_diag_geom, a_diag_two_cluster], b, ks, general_performanace_funs, plot_our_bound=False, plot_spectrum_optimal=True, relative_error=True)
+    weird_b = flamp.to_mp(mf.geometric_spectrum(dim, 1e4, 1000))
+    general_performanace_fig = convergence_superplot([a_diag_unif, a_diag_geom, a_diag_two_cluster], weird_b, ks, general_performanace_funs, plot_our_bound=False, plot_spectrum_optimal=True, relative_error=True)
     general_performanace_fig.savefig('output/paper_plots/general_performance.svg')
 
     print("our bound")
-    sns.set_palette(np.array(sns.color_palette("rocket", 5))[[0, 3, 1, 4]])
+    sns.set_palette(np.array(sns.color_palette("rocket", 4))[[0, 2, 1, 3]])
     # log_approx = baryrat.aaa(np.linspace(1, float(kappa), num=10_000), np.log, mmax=13, tol=1e-15)
     log_approx, _ = baryrat.brasil(flamp.log, (flamp.gmpy2.mpfr(1), flamp.gmpy2.mpfr(kappa)), 10, info=True)
     log_approx.degree = log_approx.degree()
@@ -196,7 +198,7 @@ if __name__ == "__main__":
         r"$r(\mathbf A)\mathbf b \approx \exp(\mathbf A) \mathbf b$ (deg=5)": exp_pade0_55,
         r"$r(\mathbf A)\mathbf b \approx \log(\mathbf A)\mathbf b$ (deg=10)": log_approx,
     }
-    our_bound_fig = convergence_superplot([a_diag_unif, a_diag_geom, a_diag_two_cluster], b, ks, our_bound_funs, plot_our_bound=True, relative_error=True, plot_optimality_ratios=False)
+    our_bound_fig = convergence_superplot([a_diag_unif, a_diag_geom, a_diag_two_cluster], flamp.ones(dim), ks, our_bound_funs, plot_our_bound=True, relative_error=True, plot_optimality_ratios=False)
     our_bound_fig.savefig('output/paper_plots/our_bound.svg')
 
     print("sqrt vs rat")
