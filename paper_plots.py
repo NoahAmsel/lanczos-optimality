@@ -1,9 +1,47 @@
 import flamp
 import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
+from tqdm import tqdm
 
 import matrix_functions as mf
-from problem import *
+
+
+class InverseMonomial:
+    def __init__(self, deg): self.deg = deg
+    def __call__(self, x): return x**(-self.deg)
+    def poles(self): return flamp.zeros(self.deg)
+    def degree_denom(self): return self.deg
+
+
+def fact1(problem, k, max_iter, n_grid, tol):
+    return 2 * problem.fov_optimal_error_remez(k, max_iter=max_iter, n_grid=n_grid, tol=tol)
+
+
+def thm1(problem, k):
+    assert problem.spectrum.min() > 1
+    assert np.all(problem.f.poles() <= 0)
+    def C_fun(self, _): return self.f.degree_denom() * (self.kappa() ** self.f.degree_denom())
+    def k_fun(self, k): return k - self.f.degree_denom() + 1
+    return problem.adjuster("instance_optimal_error", C_fun, k_fun, k)
+
+
+def thm2(problem, k, max_iter, tol):
+    def C_fun(self, k): return 3 / np.sqrt(np.pi * k) * self.kappa()
+    def k_fun(_, k): return k // 2
+    if k >= 2:
+        return problem.adjuster("spectrum_optimal_error", C_fun, k_fun, k, max_iter=max_iter, tol=tol)
+    else:
+        return np.inf
+
+
+def thm3(problem, k, max_iter, tol):
+    def C_fun(self, k): return 3 * self.kappa() ** 2 / (k ** (3/2))
+    def k_fun(_, k): return k // 2 + 1
+    if k >= 2:
+        return problem.adjuster("pseudo_spectrum_optimal_error", C_fun, k_fun, k, max_iter=max_iter, tol=tol)
+    else:
+        return np.inf
 
 
 def plot_convergence_curves(error_df, relative_error=True, **kwargs):
@@ -44,7 +82,7 @@ def inv_sqrt_data():
     b = flamp.ones(dim)
     def f(x): return 1 / flamp.sqrt(x)
     ks = list(range(1, 61))
-    p = DiagonalFAProblem(f, a_diag, b, cache_k=max(ks))
+    p = mf.DiagonalFAProblem(f, a_diag, b, cache_k=max(ks))
 
     relative_error_df = pd.DataFrame(index=ks, data={
         "FOV Optimal": [fact1(p, k, max_iter=100, n_grid=1000, tol=1e-14) for k in tqdm(ks)],
@@ -63,7 +101,7 @@ def sqrt_data():
     b = flamp.ones(dim)
     f = flamp.sqrt
     ks = list(range(1, 61))
-    p = DiagonalFAProblem(f, a_diag, b, cache_k=max(ks))
+    p = mf.DiagonalFAProblem(f, a_diag, b, cache_k=max(ks))
 
     # for caching purposes
     p.lanczos_decomp(max(ks))
