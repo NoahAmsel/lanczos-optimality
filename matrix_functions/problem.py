@@ -96,4 +96,8 @@ class DiagonalFAProblem:
         return norm(self.b) * norm(CV @ cheb_coeffs - f_spectrum_discritization, ord=np.inf)
 
     def adjuster(self, method_name, C_fun, k_fun, k, **kwargs):
-        return C_fun(self, k) * getattr(self, method_name)(k=k_fun(self, k), **kwargs)
+        k = k_fun(self, k)
+        if k < 1:
+            return flamp.gmpy2.mpfr("inf")
+        else:
+            return C_fun(self, k) * getattr(self, method_name)(k=k, **kwargs)
