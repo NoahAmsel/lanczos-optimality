@@ -43,7 +43,10 @@ class DiagonalFAProblem:
         return self.lanczos_decomp(k).Q
 
     def lanczos_error(self, k, norm_matrix_sqrt=None):
-        lanczos_estimate = self.lanczos_decomp(k).apply_function_to_start(self.f)
+        return self.lanczos_on_approximant_error(k, self.f, norm_matrix_sqrt=norm_matrix_sqrt)
+
+    def lanczos_on_approximant_error(self, k, approximant, norm_matrix_sqrt=None):
+        lanczos_estimate = self.lanczos_decomp(k).apply_function_to_start(approximant)
         error = lanczos_estimate - self.ground_truth()
         if norm_matrix_sqrt is None:
             return norm(error)

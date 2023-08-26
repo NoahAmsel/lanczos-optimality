@@ -61,14 +61,14 @@ def plot_convergence_curves(error_df, relative_error=True, **kwargs):
         error_label = "Error"
 
     k_label = "Number of iterations ($k$)"
-    error_df_long = error_df.reset_index(names=k_label).melt(id_vars=[k_label], value_name=error_label, var_name="Line")
+    error_df_long = error_df.iloc[:, ::-1].reset_index(names=k_label).melt(id_vars=[k_label], value_name=error_label, var_name="Line")
 
     if "title" in kwargs:
         title = kwargs.pop("title")
     else:
         title = None
 
-    return sns.lineplot(
+    ax = sns.lineplot(
         x=k_label,
         y=error_label,
         data=error_df_long,
@@ -76,12 +76,17 @@ def plot_convergence_curves(error_df, relative_error=True, **kwargs):
         style="Line",
         size="Line" if ("sizes" in kwargs) else None,
         **kwargs
-    ).set(
+    )
+    ax.set(
         title=title,
         xlabel=k_label,
         ylabel=error_label,
         yscale='log'
     )
+    ax.legend(title='')
+    handles, labels = ax.get_legend_handles_labels()
+    ax.legend(reversed(handles), reversed(labels), title='')
+    return ax
 
 
 def inv_sqrt_data():
@@ -123,8 +128,8 @@ def sqrt_data():
 
 
 def sqrt_inv_sqrt_plot():
-    inv_sqrt_relative_error_df = inv_sqrt_data()
-    inv_sqrt_relative_error_df.to_csv("output/paper_data/inv_sqrt_data.csv", index=False)
+    # inv_sqrt_relative_error_df = inv_sqrt_data()
+    # inv_sqrt_relative_error_df.to_csv("output/paper_data/inv_sqrt_data.csv", index=False)
     inv_sqrt_relative_error_df = pd.read_csv("output/paper_data/inv_sqrt_data.csv")
 
     sqrt_relative_error_df = sqrt_data()
@@ -140,7 +145,6 @@ def sqrt_inv_sqrt_plot():
                             ax=axs[1], title=r"$\mathbf A^{1/2}\mathbf b$", **master_style_df.transpose().to_dict())
     for ax in axs:
         ax.set(xlabel=None)
-        ax.legend(title='')  # loc='upper center', ncol=4, bbox_to_anchor=(1, 0)
     for ax in axs[1:]:
         ax.set(ylabel=None)
         # axs[1].legend([], [], frameon=False)
@@ -207,7 +211,6 @@ def general_performance_plot():
             ylabel="Optimality Ratio" if (i == 0) else None
         )
         axs[0, i].set(xlabel=None)
-        axs[0, i].legend(title='')  # loc='upper center', ncol=4, bbox_to_anchor=(1, 0)
         if i > 0:
             axs[0, i].set(ylabel=None)
             axs[0, i].legend([], [], frameon=False)
@@ -268,7 +271,6 @@ def our_bound_plot():
         )
 
         axs[i].set(xlabel=None)
-        axs[i].legend(title='')  # loc='upper center', ncol=4, bbox_to_anchor=(1, 0)
         if i > 0:
             axs[i].set(ylabel=None)
             axs[i].legend([], [], frameon=False)
@@ -277,6 +279,49 @@ def our_bound_plot():
     fig.tight_layout()
     fig.savefig("output/paper_plots/our_bound.svg")
     return fig
+
+
+def sqrt_vs_rational_data():
+    dim = 100
+    kappa = flamp.gmpy2.mpfr(100.)
+    lambda_min = flamp.gmpy2.mpfr(1.)
+    a_diag = mf.two_cluster_spectrum(dim, kappa, low_cluster_size=10, lambda_1=lambda_min)
+    b = flamp.ones(dim)
+    ks = list(range(1, 41))
+
+    ground_truth_problem = mf.DiagonalFAProblem(flamp.sqrt, a_diag, b, cache_k=max(ks))
+    df_cols = {
+        f"deg={deg}": [
+            ground_truth_problem.lanczos_on_approximant_error(
+                k, baryrat.brasil(flamp.sqrt, (a_diag.min(), a_diag.max()), deg)
+            )
+            for k in tqdm(ks)
+        ]
+        for deg in [5, 10, 15, 20]
+    }
+    df_cols["Square root"] = [ground_truth_problem.lanczos_error(k) for k in tqdm(ks)]
+    return pd.DataFrame(index=ks, data={
+        **df_cols, "Square root": [ground_truth_problem.lanczos_error(k) for k in tqdm(ks)]
+    }) / mf.norm(ground_truth_problem.ground_truth())
+
+
+def sqrt_vs_rational_plot():
+    relative_error_df = sqrt_vs_rational_data()
+    with open("output/paper_data/sqrt_vs_rational_data.pkl", "wb") as f:
+        pkl.dump(relative_error_df, f)
+    with open("output/paper_data/sqrt_vs_rational_data.pkl", "rb") as f:
+        relative_error_df = pkl.load(f)
+
+    fig, ax = plt.subplots(figsize=(5.4, 3.75))
+    sns.set_palette(sns.color_palette("rocket", 5))
+    plot_convergence_curves(
+        relative_error_df,
+        relative_error=True,
+        ax=ax,
+        title="Lanczos-FA on rational approximants to square root",
+    )
+    fig.tight_layout()
+    fig.savefig('output/paper_plots/sqrt_vs_rat.svg')
 
 
 if __name__ == "__main__":
@@ -302,4 +347,5 @@ if __name__ == "__main__":
 
     # sqrt_inv_sqrt_plot()
     # general_performance_plot()
-    our_bound_plot()
+    # our_bound_plot()
+    sqrt_vs_rational_plot()
