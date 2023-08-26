@@ -10,11 +10,15 @@ from tqdm import tqdm
 import matrix_functions as mf
 
 
-class InverseMonomial:
-    def __init__(self, deg): self.deg = deg
-    def __call__(self, x): return x**(-self.deg)
-    def poles(self): return flamp.zeros(self.deg)
-    def degree_denom(self): return self.deg
+class InversePolynomial:
+    def __init__(self, polynomial): self.polynomial = polynomial
+    def __call__(self, x): return 1/self.polynomial(x)
+    def poles(self): return self.polynomial.roots()
+    def degree_denom(self): return self.polynomial.degree()
+
+
+class InverseMonomial(InversePolynomial):
+    def __init__(self, deg): super().__init__(np.polynomial.Polynomial.from_roots([0] * deg))
 
 
 def fact1(problem, k, max_iter, n_grid, tol):
@@ -61,6 +65,7 @@ def plot_convergence_curves(error_df, relative_error=True, **kwargs):
         error_label = "Error"
 
     k_label = "Number of iterations ($k$)"
+    # Lines should be given a z-ordering with the first one at the bottom. so reverse the order of the columns
     error_df_long = error_df.iloc[:, ::-1].reset_index(names=k_label).melt(id_vars=[k_label], value_name=error_label, var_name="Line")
 
     if "title" in kwargs:
@@ -85,6 +90,7 @@ def plot_convergence_curves(error_df, relative_error=True, **kwargs):
     )
     ax.legend(title='')
     handles, labels = ax.get_legend_handles_labels()
+    # Undo the reversal above; lines should appear in the legend in the order given by user.
     ax.legend(reversed(handles), reversed(labels), title='')
     return ax
 
@@ -324,6 +330,70 @@ def sqrt_vs_rational_plot():
     fig.savefig('output/paper_plots/sqrt_vs_rat.svg')
 
 
+def indefinite_data():
+    dim = 100
+    kappa = flamp.gmpy2.mpfr(100.)
+    lambda_min = flamp.gmpy2.mpfr(1.)
+    geom_spectrum = mf.geometric_spectrum(dim, kappa, rho=1e-5, lambda_1=lambda_min)
+    a_diag = np.hstack([-geom_spectrum, geom_spectrum])
+    b = flamp.ones(2 * dim)
+    ks = list(range(1, 61))
+    problems = {
+        r"$\mathrm{sign}(\mathbf A)\mathbf b$": mf.DiagonalFAProblem(np.sign, a_diag, b, cache_k=max(ks)),
+        r"$(5 - \mathbf A^2)^{-1} \mathbf b$": mf.DiagonalFAProblem(InversePolynomial(np.polynomial.Polynomial([5, 0, -1])), a_diag, b, cache_k=max(ks)),
+        r"$(5 + \mathbf A^2)^{-1} \mathbf b$": mf.DiagonalFAProblem(InversePolynomial(np.polynomial.Polynomial([5, 0, 1])), a_diag, b, cache_k=max(ks))
+    }
+    relative_error_dfs = {
+        label: pd.DataFrame(index=ks, data={
+            "Lanczos-FA": [p.lanczos_error(k) for k in tqdm(ks)],
+            "Instance Optimal": [p.instance_optimal_error(k) for k in tqdm(ks)]
+        }) / mf.norm(p.ground_truth()) for label, p in problems.items()
+    }
+    return relative_error_dfs
+
+
+def indefinite_plot():
+    data = indefinite_data()
+    with open("output/paper_data/indefinite_data.pkl", "wb") as f:
+        pkl.dump(data, f)
+    with open("output/paper_data/indefinite_data.pkl", "rb") as f:
+        data = pkl.load(f)
+    fig_scale = 1.5  # default. shouldn't matter when using svg
+    row_heights = [1, 0.25]
+    fig_width = fig_scale * len(data) * .9 + 4
+    fig_height = sum(row_heights) * fig_scale * 2.5
+    fig, axs = plt.subplots(
+        2, len(data),
+        sharex=True,
+        height_ratios=row_heights,
+        figsize=(fig_width, fig_height),
+    )
+    style_df = master_style_df.drop("sizes")
+    for i, (label, relative_error_df) in enumerate(data.items()):
+        plot_convergence_curves(
+            relative_error_df,
+            relative_error=True,
+            ax=axs[0, i],
+            title=label,
+            **style_df.transpose().to_dict()
+        )
+
+        optimality_ratios = relative_error_df["Lanczos-FA"] / relative_error_df["Instance Optimal"]
+
+        sns.lineplot(data=optimality_ratios, ax=axs[1, i], lw=1.5).set(
+            ylabel="Optimality Ratio" if (i == 0) else None
+        )
+        axs[0, i].set(xlabel=None)
+        if i > 0:
+            axs[0, i].set(ylabel=None)
+            axs[0, i].legend([], [], frameon=False)
+
+    fig.supxlabel("Number of iterations ($k$)")
+    fig.tight_layout()
+    fig.savefig("output/paper_plots/indefinite.svg")
+    return fig
+
+
 if __name__ == "__main__":
     flamp.set_dps(300)  # compute with this many decimal digits precision
     print(f"Using {flamp.get_dps()} digits of precision")
@@ -348,4 +418,5 @@ if __name__ == "__main__":
     # sqrt_inv_sqrt_plot()
     # general_performance_plot()
     # our_bound_plot()
-    sqrt_vs_rational_plot()
+    # sqrt_vs_rational_plot()
+    indefinite_plot()
