@@ -9,6 +9,7 @@ import pandas as pd
 import pickle as pkl
 import seaborn as sns
 from tqdm import tqdm
+from tqdm.contrib.itertools import product
 
 import experiments
 import matrix_functions as mf
@@ -259,6 +260,53 @@ class IndefinitePlotter(ConvergencePlotter):
         return self.convergence_plot(data, (8, 4.75), True, style_df)
 
 
+class OptLowerBound(PaperPlotter):
+    def name(self):
+        return "opt_lower_bound"
+
+    def generate_data(self):
+        dim = 100
+        # For speed, we restrict k = 7 here,
+        # but we find the the results are unchanged if larger ks are considered as well.
+        # The biggest ratios always seem to occur in the first few iterations 
+        ks = list(range(1, 7))
+        high_cluster_width = np.geomspace(5e-6, 5e-1, num=20)[4]
+        results = []
+        for kappa, q in tqdm(product([10**2, 10**3, 10**4, 10**5, 10**6], [2, 4, 8, 16, 32, 64])):
+            kappa = flamp.gmpy2.mpfr(kappa)
+            a_diag = mf.two_cluster_spectrum(
+                dim, kappa, low_cluster_size=1, high_cluster_width=high_cluster_width
+            )
+            opt_b0, opt_ratio = experiments.worst_b0(
+                experiments.InverseMonomial(q),
+                a_diag, ks, (1e-8, 1), norm_matrix_sqrt=None, xatol=1e-10)
+            results.append(dict(
+                kappa=kappa,
+                q=q,
+                high_cluster_width=high_cluster_width,
+                dimension=dim,
+                b0=opt_b0,
+                ratio=opt_ratio,
+            ))
+        return pd.DataFrame(results)
+
+    def plot_data(self, data):
+        data = data.astype(float)
+        data["log_kappa"] = np.log10(data["kappa"])
+        fig, axs = plt.subplots(1, 2, figsize=(8, 4))
+        palette = sns.color_palette("rocket", 5)
+        sns.scatterplot(x='q', y='ratio', hue='log_kappa', data=data, legend=False, palette=palette, ax=axs[0], s=60)
+        sns.lineplot(x=data.q.unique(), y=np.sqrt(data.q.unique() * data.kappa.max()), ax=axs[0], lw=1.5, ls=':')
+        axs[0].set(xscale='log', yscale='log', xlabel=r"$q$", ylabel=r'Max Optimality Ratio ($C$)')
+        axs[0].set_xscale('log', base=2)
+
+        sns.scatterplot(x='kappa', y='ratio', hue='log_kappa', data=data, legend=False, palette=palette, ax=axs[1], s=60)
+        sns.lineplot(x=data.kappa.unique(), y=np.sqrt(data.kappa.unique() * data.q.max()), ax=axs[1], lw=1.5, ls=':')
+        axs[1].set(xscale='log', yscale='log', xlabel=r'$\kappa$', ylabel='')
+        fig.tight_layout()
+        return fig
+
+
 if __name__ == "__main__":
     flamp.set_dps(300)  # compute with this many decimal digits precision
     print(f"Using {flamp.get_dps()} digits of precision")
@@ -277,3 +325,4 @@ if __name__ == "__main__":
     OurBoundPlotter(output_folder).plot(use_cache)
     SqrtVsRationalPlotter(output_folder).plot(use_cache)
     IndefinitePlotter(output_folder).plot(use_cache)
+    OptLowerBound(output_folder).plot(use_cache)

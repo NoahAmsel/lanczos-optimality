@@ -1,6 +1,9 @@
 import flamp
 import numpy as np
+from scipy.optimize import minimize_scalar
 import seaborn as sns
+
+import matrix_functions as mf
 
 
 class InversePolynomial:
@@ -49,6 +52,21 @@ def thm3(problem, k, max_iter, tol):
         return problem.adjuster("pseudo_spectrum_optimal_error", C_fun, k_fun, k, max_iter=max_iter, tol=tol)
     else:
         return np.inf
+
+
+def worst_b0(f, spectrum, ks, bounds, norm_matrix_sqrt=None, xatol=1e-10):
+    b = flamp.ones(len(spectrum))
+
+    def objective(b0):
+        b[0] = flamp.gmpy2.mpfr(b0)
+        problem = mf.DiagonalFAProblem(f, spectrum, b)
+        lan = np.array([problem.lanczos_error(k, norm_matrix_sqrt=norm_matrix_sqrt) for k in ks])
+        opt = np.array([problem.instance_optimal_error(k, norm_matrix_sqrt=norm_matrix_sqrt) for k in ks])
+        # negative because we use a minimize function to solve a maximization problem
+        return -float((lan / opt).max())
+
+    res = minimize_scalar(objective, bounds=bounds, options=dict(xatol=xatol))
+    return res.x, -res.fun
 
 
 def plot_convergence_curves(error_df, relative_error=True, **kwargs):
