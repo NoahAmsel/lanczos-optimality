@@ -11,7 +11,7 @@ class InversePolynomial:
 
 
 class InverseMonomial(InversePolynomial):
-    def __init__(self, deg): super().__init__(np.polynomial.Polynomial.from_roots([0] * deg))
+    def __init__(self, deg): super().__init__(np.polynomial.Polynomial.fromroots([0] * deg))
 
 
 def fact1(problem, k, max_iter, n_grid, tol):

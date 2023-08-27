@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 import baryrat
 import flamp
@@ -14,6 +15,11 @@ import matrix_functions as mf
 
 
 class PaperPlotter(ABC):
+    def __init__(self, output_folder):
+        self.output_folder = output_folder
+        Path(f"{self.output_folder}/data").mkdir(parents=True, exist_ok=True)
+        Path(f"{self.output_folder}/plots").mkdir(parents=True, exist_ok=True)
+
     @abstractmethod
     def name(self): pass
     @abstractmethod
@@ -21,10 +27,11 @@ class PaperPlotter(ABC):
     @abstractmethod
     def plot_data(self, _): pass
 
-    def data_path(self): return f"output/paper_data/{self.name()}.pkl"
-    def plot_path(self): return f"output/paper_plots/{self.name()}.svg"
+    def data_path(self): return f"{self.output_folder}/data/{self.name()}.pkl"
+    def plot_path(self): return f"{self.output_folder}/plots/{self.name()}.svg"
 
     def plot(self, use_saved_data=False):
+        print(self.name())
         if use_saved_data:
             with open(self.data_path(), "rb") as f:
                 data = pkl.load(f)
@@ -81,6 +88,7 @@ class ConvergencePlotter(PaperPlotter):
             "Lanczos-FA": [(1, 1), 3, sns.color_palette("rocket", 4)[2]],
             "Instance Optimal": [(1, 0), 1, sns.color_palette("rocket", 4)[0]],
         }, index=["dashes", "sizes", "palette"])
+
 
 class Sec4Plotter(ConvergencePlotter):
     def name(self):
@@ -261,8 +269,11 @@ if __name__ == "__main__":
         "font.family": "serif"
     })
 
-    Sec4Plotter().plot(True)
-    GeneralPerformancePlotter().plot(True)
-    OurBoundPlotter().plot(True)
-    SqrtVsRationalPlotter().plot(True)
-    IndefinitePlotter().plot(True)
+    output_folder = "output/paper_output"
+    use_cache = True
+
+    Sec4Plotter(output_folder).plot(use_cache)
+    GeneralPerformancePlotter(output_folder).plot(use_cache)
+    OurBoundPlotter(output_folder).plot(use_cache)
+    SqrtVsRationalPlotter(output_folder).plot(use_cache)
+    IndefinitePlotter(output_folder).plot(use_cache)
