@@ -1,3 +1,4 @@
+import flamp
 import numpy as np
 import numpy.linalg as lin
 from scipy import sparse
@@ -32,3 +33,10 @@ def test_lanczos_fa_exponential():
         b = np.random.rand(dim)
         ref = mf.naive_fa(np.exp, A, b)
         assert np.allclose(mf.lanczos_fa(np.exp, A, b, k=dim//2), ref)
+
+
+def test_naive_flamp():
+    A = flamp.to_mp([[1, 2], [2, -3]])
+    b = flamp.ones(2)
+    ground_truth = flamp.to_mp([1, 3])
+    np.abs(mf.naive_fa(flamp.square, A, b) - ground_truth).max() < flamp.gmpy2.mpfr('1e-16')

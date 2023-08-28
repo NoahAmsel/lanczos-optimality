@@ -51,6 +51,8 @@ def linspace(start, stop, num=50, endpoint=True, dtype=None):
 def eigh(X):
     if type(X) == torch.Tensor:
         return torch.linalg.eigh(X)
+    elif X.dtype == np.dtype('O'):
+        return flamp.eigh(X)
     else:
         return lin.eigh(X)
 
