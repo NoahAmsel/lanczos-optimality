@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractstaticmethod
 from pathlib import Path
 
 import baryrat
@@ -225,7 +225,7 @@ class SqrtVsRationalPlotter(ConvergencePlotter):
         }) / mf.norm(ground_truth_problem.ground_truth())
 
     def plot_data(self, data):
-        title = "Lanczos-FA on rational approximants to square root"
+        title = ""
         sns.set_palette(sns.color_palette("rocket", 5))
         return self.convergence_plot({title: data}, (5.4, 3.75), False, pd.DataFrame())
 
@@ -260,9 +260,10 @@ class IndefinitePlotter(ConvergencePlotter):
         return self.convergence_plot(data, (8, 4.75), True, style_df)
 
 
-class OptLowerBound(PaperPlotter):
-    def name(self):
-        return "opt_lower_bound"
+class GenericOptLowerBoundPlotter(PaperPlotter):
+    @abstractstaticmethod
+    def build_norm_matrix(a_diag, q):
+        pass
 
     def generate_data(self):
         dim = 100
@@ -279,7 +280,10 @@ class OptLowerBound(PaperPlotter):
             )
             opt_b0, opt_ratio = experiments.worst_b0(
                 experiments.InverseMonomial(q),
-                a_diag, ks, (1e-8, 1), norm_matrix_sqrt=None, xatol=1e-10)
+                a_diag, ks, (1e-8, 1),
+                norm_matrix_sqrt=self.build_norm_matrix(a_diag, q),
+                xatol=1e-10
+            )
             results.append(dict(
                 kappa=kappa,
                 q=q,
@@ -289,6 +293,15 @@ class OptLowerBound(PaperPlotter):
                 ratio=opt_ratio,
             ))
         return pd.DataFrame(results)
+
+
+class OptLowerBoundPlotter(GenericOptLowerBoundPlotter):
+    def name(self):
+        return "opt_lower_bound"
+
+    @staticmethod
+    def build_norm_matrix(a_diag, q):
+        return None
 
     def plot_data(self, data):
         data = data.astype(float)
@@ -302,6 +315,31 @@ class OptLowerBound(PaperPlotter):
 
         sns.scatterplot(x='kappa', y='ratio', hue='log_kappa', data=data, legend=False, palette=palette, ax=axs[1], s=60)
         sns.lineplot(x=data.kappa.unique(), y=np.sqrt(data.kappa.unique() * data.q.max()), ax=axs[1], lw=1.5, ls=':')
+        axs[1].set(xscale='log', yscale='log', xlabel=r'$\kappa$', ylabel='')
+        fig.tight_layout()
+        return fig
+
+
+class LanczosORLowerPlotter(GenericOptLowerBoundPlotter):
+    def name(self):
+        return "lanczos_OR_lower"
+
+    @staticmethod
+    def build_norm_matrix(a_diag, q):
+        return mf.DiagonalMatrix(flamp.sqrt(a_diag ** q))
+
+    def plot_data(self, data):
+        data = data.astype(float)
+        data["log_kappa"] = np.log10(data["kappa"])
+        fig, axs = plt.subplots(1, 2, figsize=(8, 4))
+        palette = sns.color_palette("rocket", 5)
+        sns.scatterplot(x='q', y='ratio', hue='log_kappa', data=data, legend=False, palette=palette, ax=axs[0], s=60)
+        sns.lineplot(x=np.geomspace(data.q.min(), data.q.max()), y=(data.kappa.max() ** (np.geomspace(data.q.min(), data.q.max()) / 2)), ax=axs[0], lw=1.5, ls=':')
+        axs[0].set(xscale='log', yscale='log', xlabel=r"$q$", ylabel=r'Max Optimality Ratio ($C$)')
+        axs[0].set_xscale('log', base=2)
+
+        sns.scatterplot(x='kappa', y='ratio', hue='log_kappa', data=data, legend=False, palette=palette, ax=axs[1], s=60)
+        sns.lineplot(x=data.kappa.unique(), y=(data.kappa.unique() ** (data.q.max() / 2)), ax=axs[1], lw=1.5, ls=':')
         axs[1].set(xscale='log', yscale='log', xlabel=r'$\kappa$', ylabel='')
         fig.tight_layout()
         return fig
@@ -325,4 +363,5 @@ if __name__ == "__main__":
     OurBoundPlotter(output_folder).plot(use_cache)
     SqrtVsRationalPlotter(output_folder).plot(use_cache)
     IndefinitePlotter(output_folder).plot(use_cache)
-    OptLowerBound(output_folder).plot(use_cache)
+    OptLowerBoundPlotter(output_folder).plot(use_cache)
+    LanczosORLowerPlotter(output_folder).plot(use_cache)
