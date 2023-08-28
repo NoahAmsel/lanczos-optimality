@@ -269,11 +269,14 @@ class GenericOptLowerBoundPlotter(PaperPlotter):
         dim = 100
         # For speed, we restrict k = 7 here,
         # but we find the the results are unchanged if larger ks are considered as well.
-        # The biggest ratios always seem to occur in the first few iterations 
+        # The biggest ratios always seem to occur in the first few iterations
         ks = list(range(1, 7))
-        high_cluster_width = np.geomspace(5e-6, 5e-1, num=20)[4]
         results = []
-        for kappa, q in tqdm(product([10**2, 10**3, 10**4, 10**5, 10**6], [2, 4, 8, 16, 32, 64])):
+        for kappa, q, high_cluster_width in tqdm(product(
+            [10**2, 10**3, 10**4, 10**5, 10**6],
+            [2, 4, 8, 16, 32, 64],
+            np.geomspace(0.5e-5, 0.5e0, num=20)
+        )):
             kappa = flamp.gmpy2.mpfr(kappa)
             a_diag = mf.two_cluster_spectrum(
                 dim, kappa, low_cluster_size=1, high_cluster_width=high_cluster_width
@@ -305,6 +308,7 @@ class OptLowerBoundPlotter(GenericOptLowerBoundPlotter):
 
     def plot_data(self, data):
         data = data.astype(float)
+        data = data.groupby(["kappa", "q"])["ratio"].max().reset_index()
         data["log_kappa"] = np.log10(data["kappa"])
         fig, axs = plt.subplots(1, 2, figsize=(8, 4))
         palette = sns.color_palette("rocket", 5)
@@ -330,6 +334,7 @@ class LanczosORLowerPlotter(GenericOptLowerBoundPlotter):
 
     def plot_data(self, data):
         data = data.astype(float)
+        data = data.groupby(["kappa", "q"])["ratio"].max().reset_index()
         data["log_kappa"] = np.log10(data["kappa"])
         fig, axs = plt.subplots(1, 2, figsize=(8, 4))
         palette = sns.color_palette("rocket", 5)
