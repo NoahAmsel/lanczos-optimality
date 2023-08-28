@@ -1,0 +1,8 @@
+baryrat
+flamp
+matplotlib
+numpy
+pandas
+scipy
+seaborn
+tqdm

@@ -361,7 +361,7 @@ if __name__ == "__main__":
     })
 
     output_folder = "output/paper_output"
-    use_cache = True
+    use_cache = False
 
     Sec4Plotter(output_folder).plot(use_cache)
     GeneralPerformancePlotter(output_folder).plot(use_cache)
