@@ -30,10 +30,16 @@ def extrema_indices(x, num):
     max_indices = [start_ix + np.argmax(np.abs(x[start_ix:end_ix])) for start_ix, end_ix in intervals]
     # There may be more extreme points than we need.
     # Keep the biggest one, preserving alternating signs
+    # Randomly choose between using n maxima to the right of the global index
+    # or n to the left. This seems to help us get stuck less often
     # `global_max_index` is an index into the array `max_indices`
     global_max_index = np.argmax(np.abs(x[max_indices]))
-    left_limit = max(0, global_max_index - num + 1)
-    right_limit = min(left_limit + num, len(max_indices))
+    if np.random.randint(2):
+        left_limit = max(0, global_max_index - num + 1)
+        right_limit = min(left_limit + num, len(max_indices))
+    else:
+        right_limit = min(global_max_index + num, len(max_indices))
+        left_limit = max(0, right_limit - num)
     max_indices = max_indices[left_limit:right_limit]
     assert len(max_indices) == num, f"{len(max_indices)}\t{num}"
     return max_indices
