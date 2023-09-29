@@ -1,7 +1,7 @@
 # lanczos-optimality
 To install dependencies, run
 ```
-pip install requirements.txt
+pip install -r requirements.txt
 ```
 
 To generate the figures from the paper, run
