@@ -32,8 +32,8 @@ def extrema_indices(x, num):
     # Keep the biggest one, preserving alternating signs
     # `global_max_index` is an index into the array `max_indices`
     global_max_index = np.argmax(np.abs(x[max_indices]))
-    right_limit = min(global_max_index + num, len(max_indices))
-    left_limit = max(0, right_limit - num)
+    left_limit = max(0, global_max_index - num + 1)
+    right_limit = min(left_limit + num, len(max_indices))
     max_indices = max_indices[left_limit:right_limit]
     assert len(max_indices) == num, f"{len(max_indices)}\t{num}"
     return max_indices
@@ -60,7 +60,8 @@ def discrete_remez_error(degree, f_points, points, max_iter=100, tol=1e-10):
 
     for _ in range(max_iter):
         V = np.hstack((
-            cheb_vandermonde(points[extreme_ixs], degree), ((-1)**arange(degree+2, dtype=points.dtype))[:, np.newaxis]
+            cheb_vandermonde(points[extreme_ixs], degree, interval=(-1, 1)),
+            ((-1)**arange(degree+2, dtype=points.dtype))[:, np.newaxis]
         ))
 
         fX = f_points[extreme_ixs]
@@ -71,10 +72,11 @@ def discrete_remez_error(degree, f_points, points, max_iter=100, tol=1e-10):
             c = np.linalg.solve(V, fX)
         E = np.abs(c[-1])  # lower bound on infinity norm error
 
-        p = np.polynomial.chebyshev.Chebyshev(c[:-1])
+        # this Vandermonde matrix must use the same interval as the one used to find c
+        p_points = cheb_vandermonde(points, degree, interval=(-1, 1)) @ c[:-1]
 
         # upper bounbds on infinity norm error
-        err_fun = f_points - p(points)
+        err_fun = f_points - p_points
         F = np.max(np.abs(err_fun))
 
         if np.abs(E-F) < tol:

@@ -41,9 +41,14 @@ def cheb_interpolation(degree, f, a, b, dtype=float):
     return interpolant
 
 
-def cheb_vandermonde(x, max_degree):
-    a = x.min()
-    b = x.max()
+# TODO: can we replace this function (and this file?) by np.polynomial.chebyshev.Chebyshev?
+# Does that play nicely with flamp?
+def cheb_vandermonde(x, max_degree, interval=None):
+    if interval is None:
+        a = x.min()
+        b = x.max()
+    else:
+        a, b = interval
     rescaled_x = 2 * (x - (a+b)/2) / (b-a)
     k = max_degree + 1
     M = np.empty((len(rescaled_x), k), dtype=x.dtype)

@@ -3,6 +3,7 @@ from pathlib import Path
 
 import baryrat
 import flamp
+from fire import Fire
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -65,7 +66,7 @@ class ConvergencePlotter(PaperPlotter):
 
             if plot_optimality_ratio:
                 optimality_ratios = relative_error_df["Lanczos-FA"] / relative_error_df["Instance Optimal"]
-                sns.lineplot(data=optimality_ratios, ax=axs[1, i], lw=1.5).set(
+                sns.lineplot(data=optimality_ratios, ax=axs[1, i], lw=1.5, color='k').set(
                     ylabel="Optimality Ratio" if (i == 0) else None
                 )
             axs[0, i].set(xlabel=None)
@@ -79,10 +80,12 @@ class ConvergencePlotter(PaperPlotter):
 
     @staticmethod
     def master_style_df():
+        fov_optimal_style = [(3, 1), 1.5, sns.color_palette("rocket", 4)[1]]
         our_bound_style = [(3, 1, 1, 1), 1.5, sns.color_palette("rocket", 4)[3]]
         return pd.DataFrame({
-            "FOV Optimal": [(3, 1), 1.5, sns.color_palette("rocket", 4)[1]],
-            "Spectrum Optimal": [(2, 1, 1, 1, 1, 1), 1.5, sns.color_palette("tab10")[-1]],
+            "FOV Optimal": fov_optimal_style,
+            "Fact 1": fov_optimal_style,
+            "Spectrum Optimal": [(2, 1, 1, 1, 1, 1), 1.5, sns.color_palette("husl", 8)[1]],
             "Theorem 1": our_bound_style,
             "Theorem 2": our_bound_style,
             "Theorem 3": our_bound_style,
@@ -148,13 +151,13 @@ class GeneralPerformancePlotter(ConvergencePlotter):
         geom_b = flamp.to_mp(mf.geometric_spectrum(dim, 1e4, 1000))
         ks = list(range(1, 61))
         problems = {
-            r"$\mathbf A^{-2}\mathbf b$": mf.DiagonalFAProblem(experiments.InverseMonomial(2), a_diag_unif, geom_b, cache_k=max(ks)),
-            r"$\exp(\mathbf A)\mathbf b$": mf.DiagonalFAProblem(flamp.exp, a_diag_geom, geom_b, cache_k=max(ks)),
+            r"$\mathbf A^{\!-2}\,\mathbf b$": mf.DiagonalFAProblem(experiments.InverseMonomial(2), a_diag_unif, geom_b, cache_k=max(ks)),
+            r"$\exp(-\mathbf A / 10)\mathbf b$": mf.DiagonalFAProblem(lambda x: flamp.exp(- x / 10), a_diag_geom, geom_b, cache_k=max(ks)),
             r"$\log(\mathbf A)\mathbf b$": mf.DiagonalFAProblem(flamp.log, a_diag_two_cluster, geom_b, cache_k=max(ks)),
         }
         return {
             label: pd.DataFrame(index=ks, data={
-                "FOV Optimal": [experiments.fact1(p, k, max_iter=100, n_grid=1000, tol=1e-14) for k in tqdm(ks)],
+                "FOV Optimal": [p.fov_optimal_error_remez(k, max_iter=100, n_grid=1000, tol=1e-14) for k in tqdm(ks)],
                 "Spectrum Optimal": [p.spectrum_optimal_error(k, max_iter=100, tol=1e-14) for k in tqdm(ks)],
                 "Lanczos-FA": [p.lanczos_error(k) for k in tqdm(ks)],
                 "Instance Optimal": [p.instance_optimal_error(k) for k in tqdm(ks)]
@@ -179,13 +182,13 @@ class OurBoundPlotter(ConvergencePlotter):
         b = flamp.ones(dim)
         ks = list(range(1, 61))
         problems = {
-            r"$\mathbf A^{-2}\mathbf b$": mf.DiagonalFAProblem(experiments.InverseMonomial(2), a_diag_unif, b, cache_k=max(ks)),
-            r"$r(\mathbf A)\mathbf b \approx \mathbf A^{.9} \mathbf b$ (deg=5)": mf.DiagonalFAProblem(baryrat.brasil(lambda x: x**(.9), (flamp.gmpy2.mpfr(1), flamp.gmpy2.mpfr(kappa)), 5, info=False), a_diag_geom, b, cache_k=max(ks)),
+            r"$\mathbf A^{\!-2}\,\mathbf b$": mf.DiagonalFAProblem(experiments.InverseMonomial(2), a_diag_unif, b, cache_k=max(ks)),
+            r"$r(\mathbf A)\mathbf b \approx \exp(-\mathbf A / 10)\mathbf b$ (deg=5)": mf.DiagonalFAProblem(experiments.ExpRationalApprox(a_diag_geom.min(), a_diag_geom.max(), -1/10, 5), a_diag_geom, b, cache_k=max(ks)),
             r"$r(\mathbf A)\mathbf b \approx \log(\mathbf A)\mathbf b$ (deg=10)": mf.DiagonalFAProblem(baryrat.brasil(flamp.log, (flamp.gmpy2.mpfr(1), flamp.gmpy2.mpfr(kappa)), 10, info=False), a_diag_two_cluster, b, cache_k=max(ks)),
         }
         relative_error_dfs = {
             label: pd.DataFrame(index=ks, data={
-                "FOV Optimal": [experiments.fact1(p, k, max_iter=100, n_grid=1000, tol=1e-14) for k in tqdm(ks)],
+                "Fact 1": [experiments.fact1(p, k, max_iter=100, n_grid=1000, tol=1e-14) for k in tqdm(ks)],
                 "Theorem 1": [experiments.thm1(p, k) for k in tqdm(ks)],
                 "Lanczos-FA": [p.lanczos_error(k) for k in tqdm(ks)],
                 "Instance Optimal": [p.instance_optimal_error(k) for k in tqdm(ks)]
@@ -350,7 +353,7 @@ class LanczosORLowerPlotter(GenericOptLowerBoundPlotter):
         return fig
 
 
-if __name__ == "__main__":
+def main(output_folder="output/paper_output", use_cache=False):
     flamp.set_dps(300)  # compute with this many decimal digits precision
     print(f"Using {flamp.get_dps()} digits of precision")
 
@@ -360,13 +363,14 @@ if __name__ == "__main__":
         "font.family": "serif"
     })
 
-    output_folder = "output/paper_output"
-    use_cache = False
-
-    Sec4Plotter(output_folder).plot(use_cache)
     GeneralPerformancePlotter(output_folder).plot(use_cache)
     OurBoundPlotter(output_folder).plot(use_cache)
     SqrtVsRationalPlotter(output_folder).plot(use_cache)
+    Sec4Plotter(output_folder).plot(use_cache)
     IndefinitePlotter(output_folder).plot(use_cache)
     OptLowerBoundPlotter(output_folder).plot(use_cache)
     LanczosORLowerPlotter(output_folder).plot(use_cache)
+
+
+if __name__ == "__main__":
+    Fire(main)

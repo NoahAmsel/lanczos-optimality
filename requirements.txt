@@ -1,4 +1,5 @@
 baryrat
+fire
 flamp
 matplotlib
 numpy

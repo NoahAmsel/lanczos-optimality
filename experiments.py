@@ -17,6 +17,27 @@ class InverseMonomial(InversePolynomial):
     def __init__(self, deg): super().__init__(np.polynomial.Polynomial.fromroots([0] * deg))
 
 
+class ExpRationalApprox:
+    def __init__(self, a, b, t, degree, num_grid=None):
+        self.degree = degree
+        if num_grid is None:
+            num_grid = degree * 100
+        x_grid = flamp.linspace(a, b, num_grid)
+        transformed_grid = 1/(1 + x_grid/self.degree)
+        self.interval = (1/(1 + b/self.degree), 1/(1 + a/self.degree))
+        V = mf.cheb_vandermonde(transformed_grid, self.degree, interval=self.interval)
+        f_grid = flamp.exp(t*x_grid)
+        self.coeff = flamp.qr_solve(V, f_grid)
+
+    def __call__(self, x):
+        transformed_x = 1/(1 + x/self.degree)
+        VV = mf.cheb_vandermonde(transformed_x, self.degree, interval=self.interval)
+        return VV @ self.coeff
+
+    def degree_denom(self): return self.degree
+    def poles(self): return flamp.to_mp([-self.degree])
+
+
 def fact1(problem, k, max_iter, n_grid, tol):
     return 2 * problem.fov_optimal_error_remez(k, max_iter=max_iter, n_grid=n_grid, tol=tol)
 

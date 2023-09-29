@@ -36,7 +36,6 @@ def test_cheb_interpolation():
 
 def test_cheb_vandermonde():
     x = np.array([-1, -0.5, 0, 0.5, 1])
-    M = mf.cheb_vandermonde(x, 4)
     reference = np.array([
         [1., 1., 1., 1., 1.],
         [-1., -0.5, 0., 0.5, 1.],
@@ -44,10 +43,20 @@ def test_cheb_vandermonde():
         [-1., 1., 0., -1., 1.],
         [1., -0.5, 1., -0.5, 1.]
     ]).T
-    assert np.allclose(M, reference)
+    assert np.allclose(mf.cheb_vandermonde(x, 4), reference)
 
     # The values at each node are the same even if the nodes are linearly transformed
     assert np.allclose(mf.cheb_vandermonde(2 * x + 10, 4), reference)
+
+    # Unless we specify the interval
+    scaled_reference = np.array([
+        [1., 1., 1., 1., 1.],
+        [-2., -1, 0., 1, 2.],
+        [7., 1., -1., 1., 7],
+        [-26., -1., 0., 1., 26.],
+        [97., 1., 1., 1., 97.]
+    ]).T
+    assert np.allclose(mf.cheb_vandermonde(2 * x, 4, interval=(-1, 1)), scaled_reference)
 
 
 def test_cheb_regression_errors():
