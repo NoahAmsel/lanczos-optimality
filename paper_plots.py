@@ -86,9 +86,9 @@ class ConvergencePlotter(PaperPlotter):
             "FOV Optimal": fov_optimal_style,
             "Fact 1": fov_optimal_style,
             "Spectrum Optimal": [(2, 1, 1, 1, 1, 1), 1.5, sns.color_palette("husl", 8)[1]],
-            "Theorem 1": our_bound_style,
-            "Theorem 2": our_bound_style,
-            "Theorem 3": our_bound_style,
+            "Theorem 2.1": our_bound_style,
+            "Theorem 3.1": our_bound_style,
+            "Theorem 3.2": our_bound_style,
             "Lanczos-FA": [(1, 1), 3, sns.color_palette("rocket", 4)[2]],
             "Instance Optimal": [(1, 0), 1, sns.color_palette("rocket", 4)[0]],
         }, index=["dashes", "sizes", "palette"])
@@ -112,7 +112,7 @@ class Sec4Plotter(ConvergencePlotter):
         inv_sqrt_problem = mf.DiagonalFAProblem(inv_sqrt, a_diag_geom, b, cache_k=max(ks))
         data[r"$\mathbf A^{-1/2}\mathbf b$"] = pd.DataFrame(index=ks, data={
             "FOV Optimal": [experiments.fact1(inv_sqrt_problem, k, max_iter=100, n_grid=1000, tol=1e-14) for k in tqdm(ks)],
-            "Theorem 2": [experiments.thm2(inv_sqrt_problem, k, max_iter=100, tol=1e-14) for k in tqdm(ks)],
+            "Theorem 3.1": [experiments.thm2(inv_sqrt_problem, k, max_iter=100, tol=1e-14) for k in tqdm(ks)],
             "Lanczos-FA": [inv_sqrt_problem.lanczos_error(k) for k in tqdm(ks)],
             "Instance Optimal": [inv_sqrt_problem.instance_optimal_error(k) for k in tqdm(ks)]
         }) / mf.norm(inv_sqrt_problem.ground_truth())
@@ -121,7 +121,7 @@ class Sec4Plotter(ConvergencePlotter):
         sqrt_problem = mf.DiagonalFAProblem(flamp.sqrt, a_diag_cluster, b, cache_k=max(ks))
         data[r"$\mathbf A^{1/2}\mathbf b$"] = pd.DataFrame(index=ks, data={
             "FOV Optimal": [experiments.fact1(sqrt_problem, k, max_iter=100, n_grid=1000, tol=1e-14) for k in tqdm(ks)],
-            "Theorem 3": [experiments.thm2(sqrt_problem, k, max_iter=100, tol=1e-14) for k in tqdm(ks)],
+            "Theorem 3.2": [experiments.thm2(sqrt_problem, k, max_iter=100, tol=1e-14) for k in tqdm(ks)],
             "Lanczos-FA": [sqrt_problem.lanczos_error(k) for k in tqdm(ks)],
             "Instance Optimal": [sqrt_problem.instance_optimal_error(k) for k in tqdm(ks)]
         }) / mf.norm(sqrt_problem.ground_truth())
@@ -132,7 +132,7 @@ class Sec4Plotter(ConvergencePlotter):
         fig = self.convergence_plot(data, (8, 4), False, self.master_style_df())
         # add back the legend
         handles, labels = fig.axes[0].get_legend_handles_labels()
-        labels[2] = "Theorem 2 (left)\nTheorem 3 (right)"
+        labels[2] = "Theorem 3.1 (left)\nTheorem 3.2 (right)"
         fig.axes[0].legend(reversed(handles), reversed(labels))
         return fig
 
@@ -189,7 +189,7 @@ class OurBoundPlotter(ConvergencePlotter):
         relative_error_dfs = {
             label: pd.DataFrame(index=ks, data={
                 "Fact 1": [experiments.fact1(p, k, max_iter=100, n_grid=1000, tol=1e-14) for k in tqdm(ks)],
-                "Theorem 1": [experiments.thm1(p, k) for k in tqdm(ks)],
+                "Theorem 2.1": [experiments.thm1(p, k) for k in tqdm(ks)],
                 "Lanczos-FA": [p.lanczos_error(k) for k in tqdm(ks)],
                 "Instance Optimal": [p.instance_optimal_error(k) for k in tqdm(ks)]
             }) / mf.norm(p.ground_truth()) for label, p in problems.items()
