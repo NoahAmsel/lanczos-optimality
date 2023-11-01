@@ -111,7 +111,7 @@ class Sec4Plotter(ConvergencePlotter):
         a_diag_geom = mf.geometric_spectrum(dim, kappa, rho=1e-3, lambda_1=lambda_min)
         inv_sqrt_problem = mf.DiagonalFAProblem(inv_sqrt, a_diag_geom, b, cache_k=max(ks))
         data[r"$\mathbf A^{-1/2}\mathbf b$"] = pd.DataFrame(index=ks, data={
-            "FOV Optimal": [experiments.fact1(inv_sqrt_problem, k, max_iter=100, n_grid=1000, tol=1e-14) for k in tqdm(ks)],
+            "Fact 1": [experiments.fact1(inv_sqrt_problem, k, max_iter=100, n_grid=1000, tol=1e-14) for k in tqdm(ks)],
             "Theorem 3.1": [experiments.thm2(inv_sqrt_problem, k, max_iter=100, tol=1e-14) for k in tqdm(ks)],
             "Lanczos-FA": [inv_sqrt_problem.lanczos_error(k) for k in tqdm(ks)],
             "Instance Optimal": [inv_sqrt_problem.instance_optimal_error(k) for k in tqdm(ks)]
@@ -363,13 +363,13 @@ def main(output_folder="output/paper_output", use_cache=False):
         "font.family": "serif"
     })
 
-    GeneralPerformancePlotter(output_folder).plot(use_cache)
-    OurBoundPlotter(output_folder).plot(use_cache)
-    SqrtVsRationalPlotter(output_folder).plot(use_cache)
+    # GeneralPerformancePlotter(output_folder).plot(use_cache)
+    # OurBoundPlotter(output_folder).plot(use_cache)
+    # SqrtVsRationalPlotter(output_folder).plot(use_cache)
     Sec4Plotter(output_folder).plot(use_cache)
-    IndefinitePlotter(output_folder).plot(use_cache)
-    OptLowerBoundPlotter(output_folder).plot(use_cache)
-    LanczosORLowerPlotter(output_folder).plot(use_cache)
+    # IndefinitePlotter(output_folder).plot(use_cache)
+    # OptLowerBoundPlotter(output_folder).plot(use_cache)
+    # LanczosORLowerPlotter(output_folder).plot(use_cache)
 
 
 if __name__ == "__main__":
