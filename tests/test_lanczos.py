@@ -8,26 +8,30 @@ import matrix_functions as mf
 def test_lanczos_exactly():
     A = np.array([[1, 1, 1], [1, 1, 0], [1, 0, 0]])
     x = np.ones(3)
-    ref = np.column_stack([
-        np.ones(3)/np.sqrt(3),
-        np.array([1, 0, -1])/np.sqrt(2),
-        np.array([-np.sqrt(2), 2*np.sqrt(2), -np.sqrt(2)])/np.sqrt(12)
-    ])
+    ref = np.column_stack(
+        [
+            np.ones(3) / np.sqrt(3),
+            np.array([1, 0, -1]) / np.sqrt(2),
+            np.array([-np.sqrt(2), 2 * np.sqrt(2), -np.sqrt(2)]) / np.sqrt(12),
+        ]
+    )
     for k in range(1, 4):
         assert np.allclose(mf.lanczos(A, x, k)[0], ref[:, :k])
 
 
 def test_lanczos_early_stop():
-    A = np.diag([1., 2, 3, 4])
+    A = np.diag([1.0, 2, 3, 4])
     x = np.array([1, 0, 1, 0])
     Q, (alpha, beta) = mf.lanczos(A, x, beta_tol=1e-14)
     assert Q.shape == (4, 2)
-    assert np.allclose(Q @ mf.SymmetricTridiagonal(alpha, beta).to_sparse() @ Q.transpose() @ x, A @ x)
+    assert np.allclose(
+        Q @ mf.SymmetricTridiagonal(alpha, beta).to_sparse() @ Q.transpose() @ x, A @ x
+    )
 
 
 def test_krylov_orthonormality_diagonal():
     dim = 500
-    a_diag = np.array(list(range(1, dim+1)))
+    a_diag = np.array(list(range(1, dim + 1)))
     A = np.diag(a_diag)
     x = np.ones(dim)
     Q, _ = mf.lanczos(A, x, reorthogonalize=True)
@@ -44,7 +48,6 @@ def test_krylov_orthonormality():
 
 def test_high_precision():
     with flamp.extraprec(flamp.dps_to_prec(50) - flamp.get_precision()):
-
         dim = 100
         temp = np.random.standard_normal((dim, dim))
         X = flamp.to_mp(temp + temp.T)
@@ -57,5 +60,7 @@ def test_high_precision():
 
         X_lanczos = Q @ T @ Q.T
 
-        assert np.linalg.norm(X - X_lanczos, ord=np.inf) < flamp.gmpy2.mpfr('1e-47')
-        assert np.linalg.norm(Q @ Q.T - flamp.eye(dim), ord=np.inf) < flamp.gmpy2.mpfr('1e-47')
+        assert np.linalg.norm(X - X_lanczos, ord=np.inf) < flamp.gmpy2.mpfr("1e-47")
+        assert np.linalg.norm(Q @ Q.T - flamp.eye(dim), ord=np.inf) < flamp.gmpy2.mpfr(
+            "1e-47"
+        )

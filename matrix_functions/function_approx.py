@@ -14,4 +14,5 @@ def diagonal_fa(f, a_diag, x):
 
 def lanczos_fa(f, A, x, k=None, reorthogonalize=False, beta_tol=0):
     return LanczosDecomposition.fit(
-        A, x, k=k, reorthogonalize=reorthogonalize, beta_tol=beta_tol).apply_function_to_start(f)
+        A, x, k=k, reorthogonalize=reorthogonalize, beta_tol=beta_tol
+    ).apply_function_to_start(f)

@@ -27,7 +27,10 @@ def extrema_indices(x, num):
     end_ixs = switch_ixs + [len(x)]
     intervals = zip(start_ixs, end_ixs)
     # find the max within each each interval
-    max_indices = [start_ix + np.argmax(np.abs(x[start_ix:end_ix])) for start_ix, end_ix in intervals]
+    max_indices = [
+        start_ix + np.argmax(np.abs(x[start_ix:end_ix]))
+        for start_ix, end_ix in intervals
+    ]
     # There may be more extreme points than we need.
     # Keep the biggest one, preserving alternating signs
     # Randomly choose between using n maxima to the right of the global index
@@ -50,8 +53,13 @@ def discrete_remez_error(degree, f_points, points, max_iter=100, tol=1e-10):
     points = np.array(points)
     a = points.min()
     b = points.max()
-    def shift(x): return 2*(x-a)/(b-a) - 1  # send [a,b] to [-1, 1]
-    def unshift(x): return x*(b-a)/2 + (a+b)/2  # send [-1, 1] to [a, b]
+
+    def shift(x):
+        return 2 * (x - a) / (b - a) - 1  # send [a,b] to [-1, 1]
+
+    def unshift(x):
+        return x * (b - a) / 2 + (a + b) / 2  # send [-1, 1] to [a, b]
+
     points = shift(points)
 
     # initial guess: chebyshev l2 regression
@@ -65,14 +73,16 @@ def discrete_remez_error(degree, f_points, points, max_iter=100, tol=1e-10):
     extreme_ixs = extrema_indices(err_fun, degree + 2)
 
     for _ in range(max_iter):
-        V = np.hstack((
-            cheb_vandermonde(points[extreme_ixs], degree, interval=(-1, 1)),
-            ((-1)**arange(degree+2, dtype=points.dtype))[:, np.newaxis]
-        ))
+        V = np.hstack(
+            (
+                cheb_vandermonde(points[extreme_ixs], degree, interval=(-1, 1)),
+                ((-1) ** arange(degree + 2, dtype=points.dtype))[:, np.newaxis],
+            )
+        )
 
         fX = f_points[extreme_ixs]
 
-        if points.dtype == np.dtype('O'):
+        if points.dtype == np.dtype("O"):
             c = flamp.lu_solve(V, fX)
         else:
             c = np.linalg.solve(V, fX)
@@ -85,7 +95,7 @@ def discrete_remez_error(degree, f_points, points, max_iter=100, tol=1e-10):
         err_fun = f_points - p_points
         F = np.max(np.abs(err_fun))
 
-        if np.abs(E-F) < tol:
+        if np.abs(E - F) < tol:
             return F
 
         extreme_ixs = extrema_indices(err_fun, degree + 2)
@@ -97,5 +107,5 @@ def discrete_remez_error(degree, f_points, points, max_iter=100, tol=1e-10):
 
 def remez_error(degree, f, domain=[-1, 1], max_iter=100, n_grid=2000, tol=1e-10):
     a, b = domain
-    grid = cheb_nodes(n_grid-1, a=a, b=b, dtype=np.dtype('O'))
+    grid = cheb_nodes(n_grid - 1, a=a, b=b, dtype=np.dtype("O"))
     return discrete_remez_error(degree, f(grid), grid, max_iter=max_iter, tol=tol)

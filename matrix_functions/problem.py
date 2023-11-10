@@ -36,14 +36,18 @@ class DiagonalFAProblem:
 
     def lanczos_decomp(self, k):
         if (self.cached_decomp is None) or (k > self.cached_decomp.Q.shape[1]):
-            self.cached_decomp = LanczosDecomposition.fit(self.A(), self.b, k, reorthogonalize=True)
+            self.cached_decomp = LanczosDecomposition.fit(
+                self.A(), self.b, k, reorthogonalize=True
+            )
         return self.cached_decomp.prefix(k)
 
     def Q(self, k):
         return self.lanczos_decomp(k).Q
 
     def lanczos_error(self, k, norm_matrix_sqrt=None):
-        return self.lanczos_on_approximant_error(k, self.f, norm_matrix_sqrt=norm_matrix_sqrt)
+        return self.lanczos_on_approximant_error(
+            k, self.f, norm_matrix_sqrt=norm_matrix_sqrt
+        )
 
     def lanczos_on_approximant_error(self, k, approximant, norm_matrix_sqrt=None):
         lanczos_estimate = self.lanczos_decomp(k).apply_function_to_start(approximant)
@@ -69,34 +73,50 @@ class DiagonalFAProblem:
     def spectrum_optimal_error(self, k, max_iter, tol):
         # Degree of polynomial must be strictly less than dimension of Krylov subspace used in Lanczos (so k - 1)
         return norm(self.b) * discrete_remez_error(
-            degree=k-1, f_points=self.f(self.spectrum),
-            points=self.spectrum, max_iter=max_iter, tol=tol
+            degree=k - 1,
+            f_points=self.f(self.spectrum),
+            points=self.spectrum,
+            max_iter=max_iter,
+            tol=tol,
         )
 
     def pseudo_spectrum_optimal_error(self, k, max_iter, tol):
         augmented_spectrum = np.hstack((flamp.gmpy2.mpfr(0), self.spectrum))
         # Degree of polynomial must be strictly less than dimension of Krylov subspace used in Lanczos (so k - 1)
         return norm(self.b) * discrete_remez_error(
-            degree=k-1, f_points=self.f(augmented_spectrum),
-            points=augmented_spectrum, max_iter=max_iter, tol=tol
+            degree=k - 1,
+            f_points=self.f(augmented_spectrum),
+            points=augmented_spectrum,
+            max_iter=max_iter,
+            tol=tol,
         )
 
     def fov_optimal_error_remez(self, k, max_iter, n_grid, tol):
         # Degree of polynomial must be strictly less than dimension of Krylov subspace used in Lanczos (so k - 1)
         return norm(self.b) * remez_error(
-            degree=k-1, f=self.f, domain=(self.spectrum.min(), self.spectrum.max()),
-            max_iter=max_iter, n_grid=n_grid, tol=tol
+            degree=k - 1,
+            f=self.f,
+            domain=(self.spectrum.min(), self.spectrum.max()),
+            max_iter=max_iter,
+            n_grid=n_grid,
+            tol=tol,
         )
 
     def fov_optimal_error_chebyshev_regression(self, k, num_points):
         spectrum_discritization = cheb_nodes(
-            num_points, a=self.spectrum.min(), b=self.spectrum.max(), dtype=np.dtype('O'))
+            num_points,
+            a=self.spectrum.min(),
+            b=self.spectrum.max(),
+            dtype=np.dtype("O"),
+        )
         f_spectrum_discritization = self.f(spectrum_discritization)
         # TODO: cache the creation of CV?
         CV = cheb_vandermonde(spectrum_discritization, k)
         cheb_coeffs = flamp.qr_solve(CV, f_spectrum_discritization)
         # cheb_coeffs, _, _, _ = lin.lstsq(CV[:, :k], f_spectrum_discritization, rcond=None)
-        return norm(self.b) * norm(CV @ cheb_coeffs - f_spectrum_discritization, ord=np.inf)
+        return norm(self.b) * norm(
+            CV @ cheb_coeffs - f_spectrum_discritization, ord=np.inf
+        )
 
     def adjuster(self, method_name, C_fun, k_fun, k, **kwargs):
         k = k_fun(self, k)
