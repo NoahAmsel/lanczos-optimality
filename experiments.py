@@ -141,7 +141,8 @@ def plot_convergence_curves(error_df, relative_error=True, **kwargs):
     # Lines should be given a z-ordering with the first one at the bottom.
     # so reverse the order of the columns
     error_df_long = (
-        error_df.iloc[:, ::-1]
+        error_df.astype(float)
+        .iloc[:, ::-1]
         .reset_index(names=k_label)
         .melt(id_vars=[k_label], value_name=error_label, var_name="Line")
     )
