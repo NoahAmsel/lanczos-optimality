@@ -66,7 +66,7 @@ class ConvergencePlotter(PaperPlotter):
 
             if plot_optimality_ratio:
                 optimality_ratios = relative_error_df["Lanczos-FA"] / relative_error_df["Instance Optimal"]
-                sns.lineplot(data=optimality_ratios, ax=axs[1, i], lw=1.5, color='k').set(
+                sns.lineplot(data=optimality_ratios.astype(float), ax=axs[1, i], lw=1.5, color='k').set(
                     ylabel="Optimality Ratio" if (i == 0) else None
                 )
             axs[0, i].set(xlabel=None)
@@ -102,7 +102,7 @@ class Sec4Plotter(ConvergencePlotter):
         dim = 100
         kappa = flamp.gmpy2.mpfr(100.)
         lambda_min = flamp.gmpy2.mpfr(1.)
-        b = flamp.ones(dim)
+        b = flamp.to_mp(mf.geometric_spectrum(dim, 1e4, 1000))
         def inv_sqrt(x): return 1 / flamp.sqrt(x)
         ks = list(range(1, 61))
 
@@ -179,7 +179,7 @@ class OurBoundPlotter(ConvergencePlotter):
         a_diag_unif = flamp.linspace(lambda_min, kappa*lambda_min, dim)
         a_diag_geom = mf.geometric_spectrum(dim, kappa, rho=1e-5, lambda_1=lambda_min)
         a_diag_two_cluster = mf.two_cluster_spectrum(dim, kappa, low_cluster_size=10, lambda_1=lambda_min)
-        b = flamp.ones(dim)
+        b = flamp.to_mp(mf.geometric_spectrum(dim, 1e4, 1000))
         ks = list(range(1, 61))
         problems = {
             r"$\mathbf A^{\!-2}\,\mathbf b$": mf.DiagonalFAProblem(experiments.InverseMonomial(2), a_diag_unif, b, cache_k=max(ks)),
@@ -211,21 +211,20 @@ class SqrtVsRationalPlotter(ConvergencePlotter):
         a_diag = mf.two_cluster_spectrum(dim, kappa, low_cluster_size=10, lambda_1=lambda_min)
         b = flamp.ones(dim)
         ks = list(range(1, 41))
+        def f(x): return x**(-0.4)
+        ground_truth_problem = mf.DiagonalFAProblem(f, a_diag, b, cache_k=max(ks))
 
-        ground_truth_problem = mf.DiagonalFAProblem(flamp.sqrt, a_diag, b, cache_k=max(ks))
+        # this is a separate function to ensure that `rational_approx` is calculated only once per deg
+        # and reused for each k
+        def rational_approx_convergence(deg):
+            rational_approx = baryrat.brasil(f, (a_diag.min(), a_diag.max()), deg)
+            return [ground_truth_problem.lanczos_on_approximant_error(k, rational_approx) for k in tqdm(ks)]
+
         df_cols = {
-            f"deg={deg}": [
-                ground_truth_problem.lanczos_on_approximant_error(
-                    k, baryrat.brasil(flamp.sqrt, (a_diag.min(), a_diag.max()), deg)
-                )
-                for k in tqdm(ks)
-            ]
-            for deg in [5, 10, 15, 20]
+            f"deg={deg}": rational_approx_convergence(deg) for deg in [5, 10, 15, 20]
         }
-        df_cols["Square root"] = [ground_truth_problem.lanczos_error(k) for k in tqdm(ks)]
-        return pd.DataFrame(index=ks, data={
-            **df_cols, "Square root": [ground_truth_problem.lanczos_error(k) for k in tqdm(ks)]
-        }) / mf.norm(ground_truth_problem.ground_truth())
+        df_cols[r"$\mathbf A^{\!-0.4}\,\mathbf b$"] = [ground_truth_problem.lanczos_error(k) for k in tqdm(ks)]
+        return pd.DataFrame(index=ks, data={**df_cols}) / mf.norm(ground_truth_problem.ground_truth())
 
     def plot_data(self, data):
         title = ""
@@ -276,9 +275,9 @@ class GenericOptLowerBoundPlotter(PaperPlotter):
         ks = list(range(1, 7))
         results = []
         for kappa, q, high_cluster_width in tqdm(product(
-            [10**2, 10**3, 10**4, 10**5, 10**6],
+            [10**3, 10**4, 10**5, 10**6],
             [2, 4, 8, 16, 32, 64],
-            np.geomspace(0.5e-5, 0.5e0, num=20)
+            [0.5e-5]
         )):
             kappa = flamp.gmpy2.mpfr(kappa)
             a_diag = mf.two_cluster_spectrum(
@@ -314,14 +313,14 @@ class OptLowerBoundPlotter(GenericOptLowerBoundPlotter):
         data = data.groupby(["kappa", "q"])["ratio"].max().reset_index()
         data["log_kappa"] = np.log10(data["kappa"])
         fig, axs = plt.subplots(1, 2, figsize=(8, 4))
-        palette = sns.color_palette("rocket", 5)
+        palette = sns.color_palette("rocket", data["kappa"].nunique())
         sns.scatterplot(x='q', y='ratio', hue='log_kappa', data=data, legend=False, palette=palette, ax=axs[0], s=60)
-        sns.lineplot(x=data.q.unique(), y=np.sqrt(data.q.unique() * data.kappa.max()), ax=axs[0], lw=1.5, ls=':')
+        axs[0].plot(data.q.unique(), np.sqrt(data.q.unique() * data.kappa.max()), lw=1.5, ls=':', color='k')
         axs[0].set(xscale='log', yscale='log', xlabel=r"$q$", ylabel=r'Max Optimality Ratio ($C$)')
         axs[0].set_xscale('log', base=2)
 
         sns.scatterplot(x='kappa', y='ratio', hue='log_kappa', data=data, legend=False, palette=palette, ax=axs[1], s=60)
-        sns.lineplot(x=data.kappa.unique(), y=np.sqrt(data.kappa.unique() * data.q.max()), ax=axs[1], lw=1.5, ls=':')
+        axs[1].plot(data.kappa.unique(), np.sqrt(data.kappa.unique() * data.q.max()), lw=1.5, ls=':', color='k')
         axs[1].set(xscale='log', yscale='log', xlabel=r'$\kappa$', ylabel='')
         fig.tight_layout()
         return fig
@@ -340,20 +339,20 @@ class LanczosORLowerPlotter(GenericOptLowerBoundPlotter):
         data = data.groupby(["kappa", "q"])["ratio"].max().reset_index()
         data["log_kappa"] = np.log10(data["kappa"])
         fig, axs = plt.subplots(1, 2, figsize=(8, 4))
-        palette = sns.color_palette("rocket", 5)
+        palette = sns.color_palette("rocket", data["kappa"].nunique())
         sns.scatterplot(x='q', y='ratio', hue='log_kappa', data=data, legend=False, palette=palette, ax=axs[0], s=60)
-        sns.lineplot(x=np.geomspace(data.q.min(), data.q.max()), y=(data.kappa.max() ** (np.geomspace(data.q.min(), data.q.max()) / 2)), ax=axs[0], lw=1.5, ls=':')
+        axs[0].plot(np.geomspace(data.q.min(), data.q.max()), (data.kappa.max() ** (np.geomspace(data.q.min(), data.q.max()) / 2)), lw=1.5, ls=':', color='k')
         axs[0].set(xscale='log', yscale='log', xlabel=r"$q$", ylabel=r'Max Optimality Ratio ($C$)')
         axs[0].set_xscale('log', base=2)
 
         sns.scatterplot(x='kappa', y='ratio', hue='log_kappa', data=data, legend=False, palette=palette, ax=axs[1], s=60)
-        sns.lineplot(x=data.kappa.unique(), y=(data.kappa.unique() ** (data.q.max() / 2)), ax=axs[1], lw=1.5, ls=':')
+        axs[1].plot(data.kappa.unique(), (data.kappa.unique() ** (data.q.max() / 2)), lw=1.5, ls=':', color='k')
         axs[1].set(xscale='log', yscale='log', xlabel=r'$\kappa$', ylabel='')
         fig.tight_layout()
         return fig
 
 
-def main(output_folder="output/paper_output", use_cache=False):
+def main(output_folder, use_cache=False):
     flamp.set_dps(300)  # compute with this many decimal digits precision
     print(f"Using {flamp.get_dps()} digits of precision")
 
@@ -363,13 +362,13 @@ def main(output_folder="output/paper_output", use_cache=False):
         "font.family": "serif"
     })
 
-    # GeneralPerformancePlotter(output_folder).plot(use_cache)
-    # OurBoundPlotter(output_folder).plot(use_cache)
-    # SqrtVsRationalPlotter(output_folder).plot(use_cache)
+    GeneralPerformancePlotter(output_folder).plot(use_cache)
+    OurBoundPlotter(output_folder).plot(use_cache)
+    SqrtVsRationalPlotter(output_folder).plot(use_cache)
     Sec4Plotter(output_folder).plot(use_cache)
-    # IndefinitePlotter(output_folder).plot(use_cache)
-    # OptLowerBoundPlotter(output_folder).plot(use_cache)
-    # LanczosORLowerPlotter(output_folder).plot(use_cache)
+    IndefinitePlotter(output_folder).plot(use_cache)
+    OptLowerBoundPlotter(output_folder).plot(use_cache)
+    LanczosORLowerPlotter(output_folder).plot(use_cache)
 
 
 if __name__ == "__main__":

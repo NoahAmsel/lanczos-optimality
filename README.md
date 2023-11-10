@@ -6,7 +6,7 @@ pip install -r requirements.txt
 
 To generate the figures from the paper, run
 ```
-python paper_plots.py --output_folder=YOUR_OUTPUT_FOLDER
+python paper_plots.py --output_folder=PATH_TO_YOUR_OUTPUT_FOLDER
 ```
 
 To run the tests, run
