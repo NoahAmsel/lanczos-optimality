@@ -5,6 +5,13 @@ import scipy.linalg
 import flamp
 
 
+def zeros(shape, dtype):
+    if dtype == np.dtype("O"):
+        return flamp.zeros(shape)
+    else:
+        return np.zeros(shape, dtype=dtype)
+
+
 def exp(x):
     if x.dtype == np.dtype("O"):
         return flamp.exp(x)
@@ -72,6 +79,13 @@ def eigh_tridiagonal(d, e, eigvals_only=False):
             return d, z
     else:
         return scipy.linalg.eigh_tridiagonal(d, e, eigvals_only=eigvals_only)
+
+
+def qr_solve(A, b):
+    if np.result_type(A, b) == np.dtype("O"):
+        return flamp.qr_solve(A, b)
+    else:
+        return np.linalg.lstsq(A, b)[0]
 
 
 class DiagonalMatrix:

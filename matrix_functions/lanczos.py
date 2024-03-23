@@ -1,6 +1,6 @@
 import numpy as np
 
-from .utils import norm
+from .utils import norm, zeros
 
 
 def lanczos(A, q_1, k=None, reorthogonalize=False, beta_tol=0):
@@ -28,7 +28,11 @@ def lanczos(A, q_1, k=None, reorthogonalize=False, beta_tol=0):
         beta[i - 1] = norm(next_q)
         if beta[i - 1] <= beta_tol:
             # TODO: in some cases we may just want to continue from a new vector
-            return np.atleast_2d(Q[:, :i]), (alpha[:i], beta[: (i - 1)])
+            return (
+                np.atleast_2d(Q[:, :i]),
+                (alpha[:i], beta[: (i - 1)]),
+                zeros(n, dtype=result_type),
+            )
 
         Q[:, i] = next_q / beta[i - 1]
 
@@ -41,4 +45,7 @@ def lanczos(A, q_1, k=None, reorthogonalize=False, beta_tol=0):
             for _ in range(2):
                 next_q -= Q[:, : (i + 1)] @ (Q[:, : (i + 1)].T @ next_q)
 
-    return Q, (alpha, beta)
+    if k == n:
+        next_q = zeros(n, dtype=result_type)
+    # AQ = QT + next_q e_k.T where T = SymmetricTridiagonal(a, b)
+    return Q, (alpha, beta), next_q

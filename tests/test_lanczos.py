@@ -22,11 +22,12 @@ def test_lanczos_exactly():
 def test_lanczos_early_stop():
     A = np.diag([1.0, 2, 3, 4])
     x = np.array([1, 0, 1, 0])
-    Q, (alpha, beta) = mf.lanczos(A, x, beta_tol=1e-14)
+    Q, (alpha, beta), next_q = mf.lanczos(A, x, beta_tol=1e-14)
     assert Q.shape == (4, 2)
     assert np.allclose(
         Q @ mf.SymmetricTridiagonal(alpha, beta).to_sparse() @ Q.transpose() @ x, A @ x
     )
+    assert np.allclose(next_q, np.zeros(4))
 
 
 def test_krylov_orthonormality_diagonal():
@@ -34,15 +35,16 @@ def test_krylov_orthonormality_diagonal():
     a_diag = np.array(list(range(1, dim + 1)))
     A = np.diag(a_diag)
     x = np.ones(dim)
-    Q, _ = mf.lanczos(A, x, reorthogonalize=True)
+    Q, _, next_q = mf.lanczos(A, x, reorthogonalize=True)
     assert np.allclose(Q.T @ Q, np.eye(dim), rtol=1e-4, atol=1e-4)
+    assert np.allclose(next_q, np.zeros(dim))
 
 
 def test_krylov_orthonormality():
     dim = 100
     A = mf.generate_symmetric(mf.model_spectrum(dim, 100, 0.5))
     x = np.random.randn(dim)
-    Q, _ = mf.lanczos(A, x, reorthogonalize=True)
+    Q, _, _ = mf.lanczos(A, x, reorthogonalize=True)
     assert np.allclose(Q.T @ Q, np.eye(dim))
 
 
@@ -52,7 +54,7 @@ def test_high_precision():
         temp = np.random.standard_normal((dim, dim))
         X = flamp.to_mp(temp + temp.T)
 
-        Q, (alpha, beta) = mf.lanczos(X, flamp.ones(dim), reorthogonalize=True)
+        Q, (alpha, beta), _ = mf.lanczos(X, flamp.ones(dim), reorthogonalize=True)
         T = flamp.zeros((dim, dim))
         np.fill_diagonal(T, alpha)
         np.fill_diagonal(T[:, 1:], beta)

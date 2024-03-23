@@ -2,7 +2,7 @@ import numpy as np
 import numpy.linalg as lin
 from scipy.special import lambertw
 
-from .utils import exp, linspace, log, norm
+from .utils import exp, linspace, log, norm, zeros
 
 
 def generate_orthonormal(n, seed=None):
@@ -76,7 +76,7 @@ def start_vec(eigenvalues, ritz_values):
     # Also combine the two loops for the same reason
 
     # in case both dtypes are integral, the 1.0 turns it into float
-    twice_log_p = 1.0 * np.zeros(
+    twice_log_p = 1.0 * zeros(
         n, dtype=np.result_type(eigenvalues, ritz_values)
     )  # should we match data type of lam?
     for shift in range(1, n):
