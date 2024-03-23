@@ -1,6 +1,5 @@
-import numpy as np
-
 import flamp
+import numpy as np
 
 import matrix_functions as mf
 

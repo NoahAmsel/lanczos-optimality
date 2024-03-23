@@ -51,6 +51,13 @@ class LanczosDecomposition:
         )
         return cls(Q, SymmetricTridiagonal(alpha, beta), norm(q_1), next_q)
 
+    def shift(self, z):
+        shifted_T = SymmetricTridiagonal(
+            self.T.main_diagonal + z * np.ones(len(self.T.main_diagonal)),
+            self.T.off_diagonal,
+        )
+        return type(self)(self.Q, shifted_T, self.norm_start_vector, self.next_q)
+
     @cache
     def prefix(self, k):
         next_q = self.next_q if k == self.Q.shape[1] else self.Q[:, k]
