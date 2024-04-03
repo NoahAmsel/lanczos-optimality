@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 
 from .utils import norm, zeros
@@ -33,6 +35,8 @@ def lanczos(A, q_1, k=None, reorthogonalize=False, beta_tol=0):
                 (alpha[:i], beta[: (i - 1)]),
                 zeros(n, dtype=result_type),
             )
+        if i > n:
+            warnings.warn(f"Lanczos iteration greater than dimension ({n}) due to numerical error. Try increasing beta_tol ({beta_tol}) or precision.")
 
         Q[:, i] = next_q / beta[i - 1]
 
@@ -41,6 +45,7 @@ def lanczos(A, q_1, k=None, reorthogonalize=False, beta_tol=0):
         next_q -= alpha[i] * Q[:, i]
         next_q -= beta[i - 1] * Q[:, i - 1]
 
+        assert not reorthogonalize, "We are doing reorthogonalization all wrong. Don't use it for now"
         if reorthogonalize:
             for _ in range(2):
                 next_q -= Q[:, : (i + 1)] @ (Q[:, : (i + 1)].T @ next_q)

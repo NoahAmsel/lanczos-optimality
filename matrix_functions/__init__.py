@@ -12,6 +12,7 @@ from .spectra import (
     two_cluster_spectrum,
     start_vec,
 )
+from .sqrt_ciq import DiagonalSqrtAProblem
 from .utils import DiagonalMatrix, norm
 
 __all__ = [
@@ -33,6 +34,7 @@ __all__ = [
     "model_spectrum",
     "two_cluster_spectrum",
     "start_vec",
+    "DiagonalSqrtAProblem",
     "DiagonalMatrix",
     "norm",
 ]

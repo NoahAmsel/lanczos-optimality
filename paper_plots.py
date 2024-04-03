@@ -246,6 +246,55 @@ class GeneralPerformancePlotter(ConvergencePlotter):
         return self.convergence_plot(data, (8, 4.75), True, self.master_style_df())
 
 
+class CIQPlotter(ConvergencePlotter):
+    def __init__(self, dim, q, output_folder):
+        super().__init__(output_folder)
+        self.dim = dim
+        self.q = q
+
+    def name(self):
+        return "CIQ"
+
+    def generate_data(self):
+        t = np.array(list(range(1, self.dim + 1)))
+        a_diag_sqrt = 1/np.sqrt(t)
+        a_diag_square = 1/(t**2)
+        # a_diag_exp = np.exp(-t) + 1e-10
+        b = np.random.randn(self.dim)
+        ks = list(range(1, 200))
+        problems = {
+            r"$\lambda_t = 1/\sqrt{t}$": mf.DiagonalSqrtAProblem(
+                a_diag_sqrt, b, cache_k=max(ks)
+            ),
+            r"$\lambda_t = 1/t^2$": mf.DiagonalSqrtAProblem(
+                a_diag_square, b, cache_k=max(ks)
+            ),
+            # r"$\lambda_t = e^{-t} + 10^{-10}$": mf.DiagonalSqrtAProblem(
+            #     a_diag_exp, b, cache_k=max(ks)
+            # ),
+        }
+        return {
+            label: pd.DataFrame(
+                index=ks,
+                data={
+                    f"CIQ {self.q}": [p.ciq_error(self.q, k) for k in tqdm(ks)],
+                    f"Zolotarev-CG {self.q}": [p.zolotarev_lanczos_error(self.q, k) for k in tqdm(ks)],
+                    f"Zolotarev {self.q}": [p.zolotarev_error(self.q)] * len(ks),
+                    "Lanczos-FA": [p.lanczos_error(k) for k in tqdm(ks)],
+                },
+            )
+            / mf.norm(p.ground_truth())
+            for label, p in problems.items()
+        }
+
+    def plot_data(self, data):
+        df = self.master_style_df()
+        df[f"CIQ {self.q}"] = df["Instance Optimal"]
+        df[f"Zolotarev-CG {self.q}"] = df["FOV Optimal"]
+        df[f"Zolotarev {self.q}"] = df["Theorem 2.1"]
+        return self.convergence_plot(data, (8, 4.75), False, df)
+
+
 class OurBoundPlotter(ConvergencePlotter):
     def name(self):
         return "our_bound"
@@ -580,3 +629,17 @@ def main(output_folder, use_cache=False):
 
 if __name__ == "__main__":
     Fire(main)
+
+
+# if __name__ == "__main__":
+#     print("HEY! One the 1/t^2 spectrum, Zolotarev approx should be getting < 10^-6 according to Pleiss!")
+#     CIQPlotter(2500, 8, "output/paper_output").plot(False)
+
+#     # dim = 2500
+#     # t = np.array(list(range(1, dim + 1)))
+#     # a_diag_exp = np.exp(-t) + 1e-10
+#     # b = np.random.randn(dim)
+#     # q = 16
+#     # ks = list(range(1, 100))
+#     # p = mf.DiagonalSqrtAProblem(a_diag_exp, b, cache_k=max(ks))
+#     # errors = [p.ciq_error(q, k) for k in tqdm(ks)]

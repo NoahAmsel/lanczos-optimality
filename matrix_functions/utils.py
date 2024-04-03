@@ -85,7 +85,7 @@ def qr_solve(A, b):
     if np.result_type(A, b) == np.dtype("O"):
         return flamp.qr_solve(A, b)
     else:
-        return np.linalg.lstsq(A, b)[0]
+        return np.linalg.lstsq(A, b, rcond=None)[0]
 
 
 class DiagonalMatrix:

@@ -37,7 +37,7 @@ class DiagonalFAProblem:
     def lanczos_decomp(self, k):
         if (self.cached_decomp is None) or (k > self.cached_decomp.Q.shape[1]):
             self.cached_decomp = LanczosDecomposition.fit(
-                self.A(), self.b, k, reorthogonalize=True
+                self.A(), self.b, k, reorthogonalize=False
             )
         return self.cached_decomp.prefix(k)
 
