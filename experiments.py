@@ -131,21 +131,24 @@ def worst_b0(f, spectrum, ks, bounds, norm_matrix_sqrt=None, xatol=1e-10):
     return res.x, -res.fun
 
 
-def plot_convergence_curves(error_df, relative_error=True, **kwargs):
+def plot_convergence_curves(error_df, relative_error=True, already_long_fmt=False, **kwargs):
     if relative_error:
         error_label = "Relative Error"
     else:
         error_label = "Error"
 
     k_label = "Number of iterations ($k$)"
-    # Lines should be given a z-ordering with the first one at the bottom.
-    # so reverse the order of the columns
-    error_df_long = (
-        error_df.astype(float)
-        .iloc[:, ::-1]
-        .reset_index(names=k_label)
-        .melt(id_vars=[k_label], value_name=error_label, var_name="Line")
-    )
+    if already_long_fmt:
+        error_df_long = error_df
+    else:
+        # Lines should be given a z-ordering with the first one at the bottom.
+        # so reverse the order of the columns
+        error_df_long = (
+            error_df.astype(float)
+            .iloc[:, ::-1]
+            .reset_index(names=k_label)
+            .melt(id_vars=[k_label], value_name=error_label, var_name="Line")
+        )
 
     if "title" in kwargs:
         title = kwargs.pop("title")

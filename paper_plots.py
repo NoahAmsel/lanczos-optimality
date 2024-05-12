@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod, abstractstaticmethod
+from abc import ABC, abstractmethod
 from pathlib import Path
 
 import baryrat
@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pickle as pkl
+import scipy.io as sio
 import seaborn as sns
 from tqdm import tqdm
 from tqdm.contrib.itertools import product
@@ -55,7 +56,7 @@ class PaperPlotter(ABC):
 
 
 class ConvergencePlotter(PaperPlotter):
-    def convergence_plot(self, data, figsize, plot_optimality_ratio, style_df):
+    def convergence_plot(self, data, figsize, plot_optimality_ratio, style_df, already_long_fmt=False):
         fig, axs = plt.subplots(
             (2 if plot_optimality_ratio else 1),
             len(data),
@@ -68,6 +69,7 @@ class ConvergencePlotter(PaperPlotter):
             experiments.plot_convergence_curves(
                 relative_error_df,
                 relative_error=True,
+                already_long_fmt=already_long_fmt,
                 ax=axs[0, i],
                 title=label,
                 **style_df.transpose().to_dict(),
@@ -448,7 +450,8 @@ class IndefinitePlotter(ConvergencePlotter):
 
 
 class GenericOptLowerBoundPlotter(PaperPlotter):
-    @abstractstaticmethod
+    @staticmethod
+    @abstractmethod
     def build_norm_matrix(a_diag, q):
         pass
 
@@ -611,6 +614,52 @@ class LanczosORLowerPlotter(GenericOptLowerBoundPlotter):
         return fig
 
 
+class JinSidfordPlotter(ConvergencePlotter):
+    def name(self):
+        return "jin_sidford"
+
+    @staticmethod
+    def load_matlab_data(path):
+        state = sio.loadmat(path)
+        df_rat = pd.DataFrame({
+            "Number of iterations ($k$)": state["rational_count"][:, 0],
+            "Relative Error": state["rational_error"][:, 0],
+            "Line": pd.Series(state["rational_deg_list"][:, 0]).apply(lambda x: f"Rational deg={x}"),
+        })
+        df_slanczos = pd.DataFrame({
+            "Number of iterations ($k$)": state["slanczos_count"][:, 0],
+            "Relative Error": state["slanczos_error"][:, 0],
+            "Line": pd.Series(state["slanczos_deg_list"][:, 0]).apply(lambda x: f"slanczos deg={x}"),
+        })
+        df_lan = pd.DataFrame({
+            "Number of iterations ($k$)": state["real_lanczos_count"][:, 0],
+            "Relative Error": state["real_lanczos_error"][:, 0]
+        })
+        df_lan["Line"] = "Lanczos-FA"
+        df_all = pd.concat([df_rat, df_slanczos, df_lan], axis=0)
+        df_all["Number of iterations ($k$)"] = np.floor(df_all["Number of iterations ($k$)"]).astype(int)
+        df_all = df_all[df_all["Number of iterations ($k$)"] <= 250]
+        return df_all
+
+    def generate_data(self):
+        return {
+            "Eigengap Uniform": self.load_matlab_data("noah_eigengap_unif.mat"),
+            "Eigengap Skewed": self.load_matlab_data("noah_eigengap_skewed.mat"),
+            "No Eigengap Skewed": self.load_matlab_data("noah_no_eigengap_skewed.mat")
+        }
+
+    def plot_data(self, data):
+        style_df = self.master_style_df()
+        style_df.loc["sizes", "Lanczos-FA"] = 2
+        for deg_ix, deg in enumerate([4, 8, 12, 16, 32]):
+            style_df[f"Rational deg={deg}"] = [(6, 1), 2, sns.color_palette("husl", 6)[1:][deg_ix]]
+            style_df[f"slanczos deg={deg}"] = [(2, 1), 2, sns.color_palette("husl", 6)[1:][deg_ix]]
+        fig = self.convergence_plot(data, (10, 3.5), False, style_df, already_long_fmt=True)
+        fig.subplots_adjust(bottom=0.32)
+        fig.axes[0].legend(loc='upper center', bbox_to_anchor=(1.7, -0.15), ncol=3)
+        return fig
+
+
 def main(output_folder, use_cache=False):
     flamp.set_dps(300)  # compute with this many decimal digits precision
     print(f"Using {flamp.get_dps()} digits of precision")
@@ -625,21 +674,12 @@ def main(output_folder, use_cache=False):
     IndefinitePlotter(output_folder).plot(use_cache)
     OptLowerBoundPlotter(output_folder).plot(use_cache)
     LanczosORLowerPlotter(output_folder).plot(use_cache)
+    JinSidfordPlotter(output_folder).plot()
+
+    # WARNING: On the 1/t^2 spectrum, Zolotarev approx should be getting < 10^-6 according to Pleiss!
+    # TODO: add exponentially decaying spectrum
+    # CIQPlotter(2500, 8, "output/paper_output").plot(False)
 
 
 if __name__ == "__main__":
     Fire(main)
-
-
-# if __name__ == "__main__":
-#     print("HEY! One the 1/t^2 spectrum, Zolotarev approx should be getting < 10^-6 according to Pleiss!")
-#     CIQPlotter(2500, 8, "output/paper_output").plot(False)
-
-#     # dim = 2500
-#     # t = np.array(list(range(1, dim + 1)))
-#     # a_diag_exp = np.exp(-t) + 1e-10
-#     # b = np.random.randn(dim)
-#     # q = 16
-#     # ks = list(range(1, 100))
-#     # p = mf.DiagonalSqrtAProblem(a_diag_exp, b, cache_k=max(ks))
-#     # errors = [p.ciq_error(q, k) for k in tqdm(ks)]

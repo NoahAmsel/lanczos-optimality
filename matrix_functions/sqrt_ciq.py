@@ -97,3 +97,20 @@ class DiagonalSqrtAProblem(DiagonalFAProblem):
 # truth = np.sqrt(xxx)
 # errors = [np.max(np.abs(approx(xxx) - truth)) for approx in approxs]
 # plt.semilogy(qs, errors)
+
+
+# # Matching experiment on page 12 of Hale Higham Trefethen
+# # A = pascal(5) in MATLAB
+# A = np.array([
+#         [1, 1, 1, 1, 1],
+#         [1, 2, 3, 4, 5],
+#         [1, 3, 6, 10, 15],
+#         [1, 4, 10, 20, 35],
+#         [1, 5, 15, 35, 70],
+# ])
+# A_spectrum = np.linalg.eigvalsh(A)
+# for q in [5, 10, 15, 20]:
+#     exact = np.sqrt(A_spectrum)
+#     approx = sqrt_rat(q, min(A_spectrum), max(A_spectrum))(A_spectrum)
+#     rel_error = np.linalg.norm(approx - exact, ord=np.inf) / np.linalg.norm(exact, ord=np.inf)
+#     print(q, rel_error)
