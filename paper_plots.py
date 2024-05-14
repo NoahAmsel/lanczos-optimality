@@ -56,7 +56,7 @@ class PaperPlotter(ABC):
 
 
 class ConvergencePlotter(PaperPlotter):
-    def convergence_plot(self, data, figsize, plot_optimality_ratio, style_df, already_long_fmt=False):
+    def convergence_plot(self, data, figsize, plot_optimality_ratio, style_df, already_long_fmt=False, legend_ix=0):
         fig, axs = plt.subplots(
             (2 if plot_optimality_ratio else 1),
             len(data),
@@ -87,8 +87,9 @@ class ConvergencePlotter(PaperPlotter):
                     color="k",
                 ).set(ylabel="Optimality Ratio" if (i == 0) else None)
             axs[0, i].set(xlabel=None)
-            if i > 0:
+            if i != 0:
                 axs[0, i].set(ylabel=None)
+            if i != legend_ix:
                 axs[0, i].legend([], [], frameon=False)
 
         fig.supxlabel("Number of iterations ($k$)")
@@ -245,7 +246,7 @@ class GeneralPerformancePlotter(ConvergencePlotter):
         }
 
     def plot_data(self, data):
-        return self.convergence_plot(data, (8, 4.75), True, self.master_style_df())
+        return self.convergence_plot(data, (8, 3.5), True, self.master_style_df(), legend_ix=2)
 
 
 class CIQPlotter(ConvergencePlotter):
@@ -355,7 +356,7 @@ class OurBoundPlotter(ConvergencePlotter):
         return relative_error_dfs
 
     def plot_data(self, data):
-        return self.convergence_plot(data, (8, 3.75), False, self.master_style_df())
+        return self.convergence_plot(data, (8, 2.75), False, self.master_style_df(), legend_ix=2)
 
 
 class SqrtVsRationalPlotter(ConvergencePlotter):
@@ -389,7 +390,7 @@ class SqrtVsRationalPlotter(ConvergencePlotter):
         df_cols = {
             f"deg={deg}": rational_approx_convergence(deg) for deg in [5, 10, 15, 20]
         }
-        df_cols[r"$\mathbf A^{\!-0.4}\,\mathbf b$"] = [
+        df_cols["Lanczos-FA"] = [
             ground_truth_problem.lanczos_error(k) for k in tqdm(ks)
         ]
         return pd.DataFrame(index=ks, data={**df_cols}) / mf.norm(
@@ -399,7 +400,7 @@ class SqrtVsRationalPlotter(ConvergencePlotter):
     def plot_data(self, data):
         title = ""
         sns.set_palette(sns.color_palette("rocket", 5))
-        return self.convergence_plot({title: data}, (5.4, 3.75), False, pd.DataFrame())
+        return self.convergence_plot({title: data}, (5.4, 2.5), False, pd.DataFrame())
 
 
 class IndefinitePlotter(ConvergencePlotter):
@@ -504,7 +505,7 @@ class OptLowerBoundPlotter(GenericOptLowerBoundPlotter):
         data = data.astype(float)
         data = data.groupby(["kappa", "q"])["ratio"].max().reset_index()
         data["log_kappa"] = np.log10(data["kappa"])
-        fig, axs = plt.subplots(1, 2, figsize=(8, 4))
+        fig, axs = plt.subplots(1, 2, figsize=(8, 2.75))
         palette = sns.color_palette("rocket", data["kappa"].nunique())
         sns.scatterplot(
             x="q",
@@ -654,9 +655,10 @@ class JinSidfordPlotter(ConvergencePlotter):
         for deg_ix, deg in enumerate([4, 8, 12, 16, 32]):
             style_df[f"Rational deg={deg}"] = [(6, 1), 2, sns.color_palette("husl", 6)[1:][deg_ix]]
             style_df[f"slanczos deg={deg}"] = [(2, 1), 2, sns.color_palette("husl", 6)[1:][deg_ix]]
-        fig = self.convergence_plot(data, (10, 3.5), False, style_df, already_long_fmt=True)
-        fig.subplots_adjust(bottom=0.32)
+        fig = self.convergence_plot(data, (8, 2.7), False, style_df, already_long_fmt=True)
+        fig.subplots_adjust(bottom=0.37)
         fig.axes[0].legend(loc='upper center', bbox_to_anchor=(1.7, -0.15), ncol=3)
+        fig.supxlabel("Number of vec-vecs / d")
         return fig
 
 
