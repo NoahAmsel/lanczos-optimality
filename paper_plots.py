@@ -233,10 +233,10 @@ class GeneralPerformancePlotter(ConvergencePlotter):
                         )
                         for k in tqdm(ks)
                     ],
-                    "Spectrum Optimal": [
-                        p.spectrum_optimal_error(k, max_iter=100, tol=1e-14)
-                        for k in tqdm(ks)
-                    ],
+                    # "Spectrum Optimal": [
+                    #     p.spectrum_optimal_error(k, max_iter=100, tol=1e-14)
+                    #     for k in tqdm(ks)
+                    # ],
                     "Lanczos-FA": [p.lanczos_error(k) for k in tqdm(ks)],
                     "Instance Optimal": [p.instance_optimal_error(k) for k in tqdm(ks)],
                 },
@@ -665,13 +665,13 @@ def main(output_folder, use_cache=False):
     # sns.set(font_scale=2)
     plt.rcParams.update({"text.usetex": True, "font.family": "serif"})
 
-    # GeneralPerformancePlotter(output_folder).plot(use_cache)
-    # OurBoundPlotter(output_folder).plot(use_cache)
-    # SqrtVsRationalPlotter(output_folder).plot(use_cache)
-    # Sec4Plotter(output_folder).plot(use_cache)
-    # IndefinitePlotter(output_folder).plot(use_cache)
-    # OptLowerBoundPlotter(output_folder).plot(use_cache)
-    # LanczosORLowerPlotter(output_folder).plot(use_cache)
+    GeneralPerformancePlotter(output_folder).plot(use_cache)
+    OurBoundPlotter(output_folder).plot(use_cache)
+    SqrtVsRationalPlotter(output_folder).plot(use_cache)
+    Sec4Plotter(output_folder).plot(use_cache)
+    IndefinitePlotter(output_folder).plot(use_cache)
+    OptLowerBoundPlotter(output_folder).plot(use_cache)
+    LanczosORLowerPlotter(output_folder).plot(use_cache)
     JinSidfordPlotter(output_folder).plot()
 
     # WARNING: On the 1/t^2 spectrum, Zolotarev approx should be getting < 10^-6 according to Pleiss!
