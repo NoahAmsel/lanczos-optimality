@@ -625,19 +625,19 @@ class JinSidfordPlotter(ConvergencePlotter):
         df_rat = pd.DataFrame({
             "Number of iterations ($k$)": state["rational_count"][:, 0],
             "Relative Error": state["rational_error"][:, 0],
-            "Line": pd.Series(state["rational_deg_list"][:, 0]).apply(lambda x: f"Rational deg={x}"),
-        })
+            "Line": pd.Series(state["rational_deg_list"][:, 0]).apply(lambda x: f"``rational'' deg={x}"),
+        }).sort_values("Line", ascending=False)
         df_slanczos = pd.DataFrame({
             "Number of iterations ($k$)": state["slanczos_count"][:, 0],
             "Relative Error": state["slanczos_error"][:, 0],
-            "Line": pd.Series(state["slanczos_deg_list"][:, 0]).apply(lambda x: f"slanczos deg={x}"),
-        })
+            "Line": pd.Series(state["slanczos_deg_list"][:, 0]).apply(lambda x: f"``slanczos'' deg={x}"),
+        }).sort_values("Line", ascending=False)
         df_lan = pd.DataFrame({
             "Number of iterations ($k$)": state["real_lanczos_count"][:, 0],
             "Relative Error": state["real_lanczos_error"][:, 0]
         })
         df_lan["Line"] = "Lanczos-FA"
-        df_all = pd.concat([df_rat, df_slanczos, df_lan], axis=0)
+        df_all = pd.concat([df_lan, df_slanczos, df_rat], axis=0)
         df_all["Number of iterations ($k$)"] = np.floor(df_all["Number of iterations ($k$)"]).astype(int)
         df_all = df_all[df_all["Number of iterations ($k$)"] <= 250]
         return df_all
@@ -650,15 +650,11 @@ class JinSidfordPlotter(ConvergencePlotter):
         }
 
     def plot_data(self, data):
-        style_df = self.master_style_df()
-        style_df.loc["sizes", "Lanczos-FA"] = 2
-        for deg_ix, deg in enumerate([4, 8, 12, 16, 32]):
-            style_df[f"Rational deg={deg}"] = [(6, 1), 2, sns.color_palette("husl", 6)[1:][deg_ix]]
-            style_df[f"slanczos deg={deg}"] = [(2, 1), 2, sns.color_palette("husl", 6)[1:][deg_ix]]
-        fig = self.convergence_plot(data, (8, 2.7), False, style_df, already_long_fmt=True)
+        sns.set_palette(sns.color_palette("rocket", 5))
+        fig = self.convergence_plot(data, (8, 2.7), False, pd.DataFrame(), already_long_fmt=True)
         fig.subplots_adjust(bottom=0.37)
         fig.axes[0].legend(loc='upper center', bbox_to_anchor=(1.7, -0.15), ncol=3)
-        fig.supxlabel("Number of vec-vecs / d")
+        fig.supxlabel("Number of matvecs (or equivalent in vector-vector products)")
         return fig
 
 
@@ -669,13 +665,13 @@ def main(output_folder, use_cache=False):
     # sns.set(font_scale=2)
     plt.rcParams.update({"text.usetex": True, "font.family": "serif"})
 
-    GeneralPerformancePlotter(output_folder).plot(use_cache)
-    OurBoundPlotter(output_folder).plot(use_cache)
-    SqrtVsRationalPlotter(output_folder).plot(use_cache)
-    Sec4Plotter(output_folder).plot(use_cache)
-    IndefinitePlotter(output_folder).plot(use_cache)
-    OptLowerBoundPlotter(output_folder).plot(use_cache)
-    LanczosORLowerPlotter(output_folder).plot(use_cache)
+    # GeneralPerformancePlotter(output_folder).plot(use_cache)
+    # OurBoundPlotter(output_folder).plot(use_cache)
+    # SqrtVsRationalPlotter(output_folder).plot(use_cache)
+    # Sec4Plotter(output_folder).plot(use_cache)
+    # IndefinitePlotter(output_folder).plot(use_cache)
+    # OptLowerBoundPlotter(output_folder).plot(use_cache)
+    # LanczosORLowerPlotter(output_folder).plot(use_cache)
     JinSidfordPlotter(output_folder).plot()
 
     # WARNING: On the 1/t^2 spectrum, Zolotarev approx should be getting < 10^-6 according to Pleiss!
