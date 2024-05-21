@@ -227,7 +227,7 @@ class GeneralPerformancePlotter(ConvergencePlotter):
             label: pd.DataFrame(
                 index=ks,
                 data={
-                    "FOV Optimal": [
+                    "Fact 1": [
                         p.fov_optimal_error_remez(
                             k, max_iter=100, n_grid=1000, tol=1e-14
                         )
@@ -663,7 +663,7 @@ def main(output_folder, use_cache=False):
     print(f"Using {flamp.get_dps()} digits of precision")
 
     # sns.set(font_scale=2)
-    plt.rcParams.update({"text.usetex": True, "font.family": "serif"})
+    plt.rcParams.update({"text.usetex": True, "text.latex.preamble": r'\usepackage{newtxtext,newtxmath}', "font.family": "serif"})
 
     GeneralPerformancePlotter(output_folder).plot(use_cache)
     OurBoundPlotter(output_folder).plot(use_cache)
