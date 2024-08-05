@@ -654,7 +654,7 @@ class JinSidfordPlotter(ConvergencePlotter):
         fig = self.convergence_plot(data, (8, 2.7), False, pd.DataFrame(), already_long_fmt=True)
         fig.subplots_adjust(bottom=0.37)
         fig.axes[0].legend(loc='upper center', bbox_to_anchor=(1.7, -0.15), ncol=3)
-        fig.supxlabel("Number of matvecs (or equivalent in vector-vector products)")
+        fig.supxlabel("Number of matrix-vector products (or equivalent in vector-vector products)")
         return fig
 
 
