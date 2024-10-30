@@ -103,15 +103,15 @@ class ConvergencePlotter(PaperPlotter):
         return pd.DataFrame(
             {
                 "FOV Optimal": fov_optimal_style,
-                "Fact 1": fov_optimal_style,
+                "Fact 3": fov_optimal_style,
                 "Spectrum Optimal": [
                     (2, 1, 1, 1, 1, 1),
                     1.5,
                     sns.color_palette("husl", 8)[1],
                 ],
-                "Theorem 2.1": our_bound_style,
-                "Theorem 3.1": our_bound_style,
-                "Theorem 3.2": our_bound_style,
+                "Theorem 4": our_bound_style,
+                "Theorem 6": our_bound_style,
+                "Theorem 7": our_bound_style,
                 "Lanczos-FA": [(1, 1), 3, sns.color_palette("rocket", 4)[2]],
                 "Instance Optimal": [(1, 0), 1, sns.color_palette("rocket", 4)[0]],
             },
@@ -143,13 +143,13 @@ class Sec4Plotter(ConvergencePlotter):
         data[r"$\mathbf A^{-1/2}\mathbf b$"] = pd.DataFrame(
             index=ks,
             data={
-                "Fact 1": [
+                "Fact 3": [
                     experiments.fact1(
                         inv_sqrt_problem, k, max_iter=100, n_grid=1000, tol=1e-14
                     )
                     for k in tqdm(ks)
                 ],
-                "Theorem 3.1": [
+                "Theorem 6": [
                     experiments.thm2(inv_sqrt_problem, k, max_iter=100, tol=1e-14)
                     for k in tqdm(ks)
                 ],
@@ -175,7 +175,7 @@ class Sec4Plotter(ConvergencePlotter):
                     )
                     for k in tqdm(ks)
                 ],
-                "Theorem 3.2": [
+                "Theorem 7": [
                     experiments.thm2(sqrt_problem, k, max_iter=100, tol=1e-14)
                     for k in tqdm(ks)
                 ],
@@ -192,7 +192,7 @@ class Sec4Plotter(ConvergencePlotter):
         fig = self.convergence_plot(data, (8, 4), False, self.master_style_df())
         # add back the legend
         handles, labels = fig.axes[0].get_legend_handles_labels()
-        labels[2] = "Theorem 3.1 (left)\nTheorem 3.2 (right)"
+        labels[2] = "Theorem 6 (left)\nTheorem 7 (right)"
         fig.axes[0].legend(reversed(handles), reversed(labels))
         return fig
 
@@ -227,7 +227,7 @@ class GeneralPerformancePlotter(ConvergencePlotter):
             label: pd.DataFrame(
                 index=ks,
                 data={
-                    "Fact 1": [
+                    "Fact 3": [
                         p.fov_optimal_error_remez(
                             k, max_iter=100, n_grid=1000, tol=1e-14
                         )
@@ -294,7 +294,7 @@ class CIQPlotter(ConvergencePlotter):
         df = self.master_style_df()
         df[f"CIQ {self.q}"] = df["Instance Optimal"]
         df[f"Zolotarev-CG {self.q}"] = df["FOV Optimal"]
-        df[f"Zolotarev {self.q}"] = df["Theorem 2.1"]
+        df[f"Zolotarev {self.q}"] = df["Theorem 4"]
         return self.convergence_plot(data, (8, 4.75), False, df)
 
 
@@ -341,11 +341,11 @@ class OurBoundPlotter(ConvergencePlotter):
             label: pd.DataFrame(
                 index=ks,
                 data={
-                    "Fact 1": [
+                    "Fact 3": [
                         experiments.fact1(p, k, max_iter=100, n_grid=1000, tol=1e-14)
                         for k in tqdm(ks)
                     ],
-                    "Theorem 2.1": [experiments.thm1(p, k) for k in tqdm(ks)],
+                    "Theorem 4": [experiments.thm1(p, k) for k in tqdm(ks)],
                     "Lanczos-FA": [p.lanczos_error(k) for k in tqdm(ks)],
                     "Instance Optimal": [p.instance_optimal_error(k) for k in tqdm(ks)],
                 },
@@ -447,7 +447,7 @@ class IndefinitePlotter(ConvergencePlotter):
 
     def plot_data(self, data):
         style_df = self.master_style_df().drop("sizes")
-        return self.convergence_plot(data, (8, 4.75), True, style_df)
+        return self.convergence_plot(data, (8, 2.75), True, style_df)
 
 
 class GenericOptLowerBoundPlotter(PaperPlotter):
